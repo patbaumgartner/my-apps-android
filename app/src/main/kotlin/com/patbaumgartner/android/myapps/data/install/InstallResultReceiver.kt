@@ -17,6 +17,16 @@ class InstallResultReceiver : BroadcastReceiver() {
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
         val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
         val requestCode = intent.getIntExtra(EXTRA_REQUEST_CODE, -1)
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            // The system does not show the consent UI by itself for a committed session:
+            // it hands it to us via EXTRA_INTENT and we must launch it. Without this the
+            // install waits forever and no final status is ever delivered.
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)?.let { confirm ->
+                confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { context.startActivity(confirm) }
+            }
+        }
         listener?.onInstallResult(requestCode, status, message)
     }
 
