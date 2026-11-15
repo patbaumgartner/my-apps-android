@@ -9,10 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.content.ContextCompat
-import com.patbaumgartner.android.myapps.data.settings.ThemeMode
 import com.patbaumgartner.android.myapps.ui.theme.MyAppsTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,13 +27,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
         viewModel.refreshInstallPermission()
         setContent {
-            val theme by viewModel.themeMode.collectAsState()
-            val dark = when (theme) {
-                ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-            MyAppsTheme(darkTheme = dark) {
+            MyAppsTheme(darkTheme = isSystemInDarkTheme()) {
                 MyAppsApp(viewModel)
             }
         }

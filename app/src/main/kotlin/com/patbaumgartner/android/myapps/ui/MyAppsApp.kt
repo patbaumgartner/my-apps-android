@@ -104,12 +104,10 @@ fun MyAppsApp(viewModel: MyAppsViewModel) {
             }
             composable(Route.Settings.route) {
                 SettingsScreen(
-                    themeMode = viewModel.themeMode,
                     backgroundChecks = viewModel.backgroundChecksEnabled,
                     wifiOnly = viewModel.backgroundWifiOnly,
                     notifications = viewModel.notificationsEnabled,
                     discovered = viewModel.discovered,
-                    onTheme = viewModel::setTheme,
                     onBackgroundChecks = viewModel::setBackgroundChecks,
                     onWifiOnly = viewModel::setBackgroundWifiOnly,
                     onNotifications = viewModel::setNotificationsEnabled,
