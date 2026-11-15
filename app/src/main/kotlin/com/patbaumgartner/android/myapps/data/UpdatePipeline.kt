@@ -46,24 +46,38 @@ class UpdateChecker(
 ) {
     suspend fun check(app: ApprovedApp, installed: InstalledApp?): CheckOutcome = withContext(Dispatchers.IO) {
         val channel = settings.channelFor(app.repo)
-        val gh = when (channel) {
-            Channel.STABLE -> gitHub.latestRelease(app.owner, app.repo)
-            Channel.SNAPSHOT -> gitHub.releaseByTag(app.owner, app.repo, SNAPSHOT_TAG)
+        val tag = if (channel == Channel.SNAPSHOT) SNAPSHOT_TAG else null
+        val gh = if (tag == null) {
+            gitHub.latestRelease(app.owner, app.repo)
+        } else {
+            gitHub.releaseByTag(app.owner, app.repo, tag)
         }
         val release = when (gh) {
             is GitHubResult.Ok -> ReleaseParser.parse(gh.value, channel).getOrElse {
                 return@withContext CheckOutcome.Failed(it.message ?: "release rejected")
             }
 
-            is GitHubResult.NotModified -> runCatching {
-                ReleaseParser.parse(gitHub.parseRelease(gh.cachedBody), channel).getOrThrow()
-            }.getOrElse { return@withContext CheckOutcome.Failed(it.message ?: "cached release unreadable") }
+            is GitHubResult.NotModified -> parseCached(gh.cachedBody, channel)
+                ?: return@withContext CheckOutcome.Failed("cached release unreadable")
 
-            is GitHubResult.HttpError -> return@withContext CheckOutcome.Failed(
-                if (gh.rateLimited) RATE_LIMIT_MESSAGE else "GitHub returned HTTP ${gh.code}",
-            )
+            is GitHubResult.HttpError, is GitHubResult.NetworkError -> {
+                // Rate limits (60 req/h unauthenticated, shared per IP) and offline must not
+                // hide the last known-good release: fall back to the ETag-cached body.
+                val cached = gitHub.cachedRelease(app.owner, app.repo, tag)
+                if (cached != null) {
+                    parseCached(cached, channel)
+                        ?: return@withContext CheckOutcome.Failed("cached release unreadable")
+                } else {
+                    val message = when (gh) {
+                        is GitHubResult.HttpError ->
+                            if (gh.rateLimited) RATE_LIMIT_MESSAGE else "GitHub returned HTTP ${gh.code}"
 
-            is GitHubResult.NetworkError -> return@withContext CheckOutcome.Failed(gh.message)
+                        is GitHubResult.NetworkError -> gh.message
+                        else -> "GitHub request failed"
+                    }
+                    return@withContext CheckOutcome.Failed(message)
+                }
+            }
         }
         if (release.assets.isEmpty()) return@withContext CheckOutcome.Failed("release ${release.tag} has no assets")
 
@@ -81,6 +95,10 @@ class UpdateChecker(
             }
         }
     }
+
+    private fun parseCached(body: String, channel: Channel): ReleaseInfo? = runCatching {
+        ReleaseParser.parse(gitHub.parseRelease(body), channel).getOrThrow()
+    }.getOrNull()
 
     companion object {
         const val SNAPSHOT_TAG = "snapshot"

@@ -97,8 +97,14 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         InstallResultReceiver.listener = InstallResultReceiver.Listener { code, status, message ->
-            val repo = requestCodes.remove(code) ?: return@Listener
-            onInstallResult(repo, status, message)
+            if (status == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                // The system consent dialog is showing; the final status arrives later with the
+                // same request code, so the mapping must stay until a terminal status.
+                requestCodes[code]?.let { onInstallResult(it, status, message) }
+            } else {
+                val repo = requestCodes.remove(code) ?: return@Listener
+                onInstallResult(repo, status, message)
+            }
         }
         // Recover state after a process replacement (notably self-update).
         viewModelScope.launch {
@@ -197,6 +203,11 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun onInstallResult(repo: String, status: Int, message: String?) {
         viewModelScope.launch {
+            if (status == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                // Not terminal: keep INSTALLING while the system shows the consent UI.
+                updateState(repo) { it.copy(status = AppStatus.INSTALLING, message = null) }
+                return@launch
+            }
             val text = InstallRepository.statusMessage(status, message)
             val success = status == android.content.pm.PackageInstaller.STATUS_SUCCESS
             updateState(repo) {

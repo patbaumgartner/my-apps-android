@@ -49,10 +49,18 @@ class GitHubClient(
         }
 
     fun latestRelease(owner: String, repo: String): GitHubResult<GhRelease> =
-        getJson("/repos/$owner/$repo/releases/latest", "$owner/$repo/latest", ::parseRelease)
+        getJson("/repos/$owner/$repo/releases/latest", cacheKey(owner, repo, null), ::parseRelease)
 
     fun releaseByTag(owner: String, repo: String, tag: String): GitHubResult<GhRelease> =
-        getJson("/repos/$owner/$repo/releases/tags/$tag", "$owner/$repo/$tag", ::parseRelease)
+        getJson("/repos/$owner/$repo/releases/tags/$tag", cacheKey(owner, repo, tag), ::parseRelease)
+
+    /**
+     * Last successfully fetched release JSON for [owner]/[repo] ([tag] = null means the
+     * "latest" endpoint), or null. Fallback for when the API is rate-limited or
+     * unreachable, so the last known-good release stays visible instead of an error.
+     */
+    fun cachedRelease(owner: String, repo: String, tag: String?): String? =
+        etagStore.cachedBody(cacheKey(owner, repo, tag))
 
     fun parseRelease(body: String): GhRelease {
         val o = JSONObject(body)
@@ -108,35 +116,39 @@ class GitHubClient(
         }
     }
 
-    private fun <T> getJson(path: String, cacheKey: String, decode: (String) -> T): GitHubResult<T> {
-        val url = API_BASE + path
-        val connection = open(url)
-        connection.connectTimeout = connectTimeoutMs
-        connection.readTimeout = readTimeoutMs
-        etagStore.etagFor(cacheKey)?.let { connection.setRequestProperty("If-None-Match", it) }
-        connection.connect()
-        return when (val code = connection.responseCode) {
-            HttpURLConnection.HTTP_NOT_MODIFIED -> {
-                etagStore.cachedBody(cacheKey)?.let { GitHubResult.NotModified(it) }
-                    ?: GitHubResult.HttpError(code, rateLimited = false)
-            }
+    private fun <T> getJson(path: String, cacheKey: String, decode: (String) -> T): GitHubResult<T> =
+        runCatching {
+            val url = API_BASE + path
+            val connection = open(url)
+            connection.connectTimeout = connectTimeoutMs
+            connection.readTimeout = readTimeoutMs
+            etagStore.etagFor(cacheKey)?.let { connection.setRequestProperty("If-None-Match", it) }
+            connection.connect()
+            when (val code = connection.responseCode) {
+                HttpURLConnection.HTTP_NOT_MODIFIED -> {
+                    etagStore.cachedBody(cacheKey)?.let { GitHubResult.NotModified(it) }
+                        ?: GitHubResult.HttpError(code, rateLimited = false)
+                }
 
-            403, 429 -> {
-                val remaining = connection.getHeaderField("X-RateLimit-Remaining")
-                GitHubResult.HttpError(code, rateLimited = remaining == "0")
-            }
+                403, 429 -> {
+                    val remaining = connection.getHeaderField("X-RateLimit-Remaining")
+                    GitHubResult.HttpError(code, rateLimited = remaining == "0")
+                }
 
-            404 -> GitHubResult.HttpError(code, rateLimited = false)
-            in 200..299 -> {
-                val body = connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
-                val etag = connection.getHeaderField("ETag")
-                etagStore.save(cacheKey, etag, body)
-                GitHubResult.Ok(decode(body), etag)
-            }
+                404 -> GitHubResult.HttpError(code, rateLimited = false)
+                in 200..299 -> {
+                    val body = connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+                    val etag = connection.getHeaderField("ETag")
+                    etagStore.save(cacheKey, etag, body)
+                    GitHubResult.Ok(decode(body), etag)
+                }
 
-            else -> GitHubResult.HttpError(code, rateLimited = false)
-        }.also { connection.disconnect() }
-    }
+                else -> GitHubResult.HttpError(code, rateLimited = false)
+            }.also { connection.disconnect() }
+        }.getOrElse { GitHubResult.NetworkError(it.message ?: "network error") }
+
+    private fun cacheKey(owner: String, repo: String, tag: String?): String =
+        if (tag == null) "$owner/$repo/latest" else "$owner/$repo/$tag"
 
     private fun open(url: String): HttpURLConnection =
         (URL(url).openConnection() as HttpURLConnection).apply {
