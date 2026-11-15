@@ -6,8 +6,6 @@ import androidx.core.content.edit
 import com.patbaumgartner.android.myapps.domain.model.Channel
 import com.patbaumgartner.android.myapps.domain.trust.TrustRegistry
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
-
 /**
  * Thin SharedPreferences wrapper. All keys are prefixed; nothing here is security-sensitive
  * (the trust registry is bundled code, never preferences).
@@ -47,10 +45,6 @@ class SettingsRepository(context: Context) {
     var notificationsEnabled: Boolean
         get() = prefs.getBoolean("notifications.enabled", true)
         set(value) = prefs.edit { putBoolean("notifications.enabled", value) }
-
-    var themeMode: ThemeMode
-        get() = ThemeMode.entries.firstOrNull { it.name == prefs.getString("theme", null) } ?: ThemeMode.SYSTEM
-        set(value) = prefs.edit { putString("theme", value.name) }
 
     /** ETag cache for GitHub API GETs, keyed by request path. */
     fun etagFor(path: String): String? = prefs.getString("etag.$path", null)

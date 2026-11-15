@@ -16,7 +16,6 @@ import com.patbaumgartner.android.myapps.data.install.InstallRepository
 import com.patbaumgartner.android.myapps.data.install.InstallResultReceiver
 import com.patbaumgartner.android.myapps.data.notify.Notifier
 import com.patbaumgartner.android.myapps.data.settings.SettingsRepository
-import com.patbaumgartner.android.myapps.data.settings.ThemeMode
 import com.patbaumgartner.android.myapps.data.work.UpdateCheckWorker
 import com.patbaumgartner.android.myapps.domain.model.ApkSelector
 import com.patbaumgartner.android.myapps.domain.model.Channel
@@ -89,7 +88,6 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
     private val _canInstallUnknown = MutableStateFlow(installer.canRequestPackageInstalls())
     val canInstallUnknown: StateFlow<Boolean> = _canInstallUnknown.asStateFlow()
 
-    val themeMode: StateFlow<ThemeMode> = MutableStateFlow(settings.themeMode)
     val backgroundChecksEnabled: StateFlow<Boolean> = MutableStateFlow(settings.backgroundChecksEnabled)
     val backgroundWifiOnly: StateFlow<Boolean> = MutableStateFlow(settings.backgroundWifiOnly)
     val notificationsEnabled: StateFlow<Boolean> = MutableStateFlow(settings.notificationsEnabled)
@@ -215,11 +213,6 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
         settings.setChannel(repo, channel)
         updateState(repo) { it.copy(channel = channel, status = AppStatus.IDLE, release = null, selection = null) }
         refreshOne(repo)
-    }
-
-    fun setTheme(mode: ThemeMode) {
-        settings.themeMode = mode
-        (themeMode as MutableStateFlow).value = mode
     }
 
     fun setBackgroundChecks(enabled: Boolean) {
