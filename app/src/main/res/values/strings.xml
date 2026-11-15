@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">myApps</string>
+
+    <string name="screen_my_apps">My Apps</string>
+    <string name="screen_updates">Updates</string>
+    <string name="screen_details">Details</string>
+    <string name="screen_settings">Settings</string>
+
+    <string name="my_apps_subtitle">Only approved apps from my public GitHub Releases.</string>
+    <string name="updates_subtitle">Install or update your approved apps. Nothing installs without your approval.</string>
+    <string name="updates_none">Everything is up to date.</string>
+
+    <string name="action_install">Install</string>
+    <string name="action_update">Update</string>
+    <string name="action_check_now">Check now</string>
+    <string name="action_back">Back</string>
+    <string name="action_open_install_settings">Allow installs from myApps</string>
+
+    <string name="not_installed">Not installed</string>
+    <string name="versions_line">Installed: %1$s · Latest: %2$s</string>
+
+    <string name="status_idle">Idle</string>
+    <string name="status_not_installed">Not installed</string>
+    <string name="status_update_available">Update available</string>
+    <string name="status_up_to_date">Up to date</string>
+    <string name="status_unchanged">Unchanged</string>
+    <string name="status_working">Working…</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_installing">Waiting for your approval…</string>
+
+    <string name="download_progress">%1$d / %2$d MB</string>
+
+    <string name="details_versions">Versions</string>
+    <string name="details_channel">Channel</string>
+    <string name="details_channel_hint">Stable uses the latest release; Snapshot (opt-in) follows the snapshot prerelease. Switching back to Stable waits for a newer stable versionCode instead of downgrading.</string>
+    <string name="details_channel_release">%1$s channel · tag %2$s · %3$s</string>
+    <string name="details_repo">Repository: github.com/%1$s/%2$s</string>
+    <string name="details_asset">APK: %1$s (%2$d MB)</string>
+    <string name="details_release_notes">Release notes</string>
+    <string name="details_install_permission_needed">Allow "Install unknown apps" for myApps to install updates.</string>
+
+    <string name="settings_updates">Update checks</string>
+    <string name="settings_background_checks">Background checks</string>
+    <string name="settings_wifi_only">Only on unmetered Wi-Fi</string>
+    <string name="settings_notifications">Notify when updates are available</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_discovered">Discovered repositories (not approved)</string>
+    <string name="settings_discovered_hint">Discovery is not authorization: a repository becomes installable only after a reviewed entry in the bundled trust registry.</string>
+
+    <string name="notification_channel_updates">Updates</string>
+    <string name="notification_updates_title">Updates available</string>
+    <string name="notification_updates_body">%1$d of your approved apps have an update.</string>
+</resources>
