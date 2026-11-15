@@ -97,7 +97,7 @@ installs are recovered after process death (`InstallResultReceiver`).
 `my-apps-android` is itself an entry in `TrustRegistry` (with its own release
 key's certificate fingerprint pinned as the trust anchor). Self-updates flow
 through the identical selection → download → verification → PackageInstaller
-pipeline. The release keystore exists only as `MA_KEYSTORE_*` repository secrets,
+pipeline. The release keystore exists only as `SR_KEYSTORE_*` repository secrets,
 never in git.
 
 ## Consequences

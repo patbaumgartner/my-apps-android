@@ -19,7 +19,7 @@ fun signingSecret(envName: String, propertyName: String): String? =
     System.getenv(envName)?.takeIf { it.isNotBlank() }
         ?: keystoreProps.getProperty(propertyName)?.takeIf { it.isNotBlank() }
 
-val releaseKeystoreFile: String? = signingSecret("MA_KEYSTORE_FILE", "storeFile")
+val releaseKeystoreFile: String? = signingSecret("SR_KEYSTORE_FILE", "storeFile")
 
 // Shown in Settings > About. CI can set GIT_COMMIT; local builds ask git, and builds without git omit it.
 val gitCommit: String = providers.environmentVariable("GIT_COMMIT").orNull?.take(10)
@@ -67,9 +67,9 @@ android {
         if (releaseKeystoreFile != null) {
             create("release") {
                 storeFile = file(releaseKeystoreFile)
-                storePassword = signingSecret("MA_KEYSTORE_PASSWORD", "storePassword")
-                keyAlias = signingSecret("MA_KEY_ALIAS", "keyAlias")
-                keyPassword = signingSecret("MA_KEY_PASSWORD", "keyPassword")
+                storePassword = signingSecret("SR_KEYSTORE_PASSWORD", "storePassword")
+                keyAlias = signingSecret("SR_KEY_ALIAS", "keyAlias")
+                keyPassword = signingSecret("SR_KEY_PASSWORD", "keyPassword")
             }
         }
     }

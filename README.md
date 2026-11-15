@@ -64,7 +64,7 @@ Requires JDK 27 and Android SDK with platform 37 / build-tools 36.0.0.
 ## Releases
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) and signed
-with a release key stored **only** in repository secrets (`MA_KEYSTORE_*` — see
+with a release key stored **only** in repository secrets (`SR_KEYSTORE_*` — see
 [CONTRIBUTING.md](CONTRIBUTING.md#releases)):
 
 - push to `main` → `snapshot` prerelease (`my-apps-snapshot.apk` + `SHA256SUMS`)

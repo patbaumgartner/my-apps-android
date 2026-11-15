@@ -19,7 +19,7 @@ myApps installs and updates Android apps. The security-relevant surface is:
   `PackageInstaller`;
 - the **self-update** path, which uses the same pipeline for `my-apps-android`;
 - the **release signing key**, which exists only as GitHub repository secrets
-  (`MA_KEYSTORE_*`) and never in git.
+  (`SR_KEYSTORE_*`) and never in git.
 
 ## Design invariants
 

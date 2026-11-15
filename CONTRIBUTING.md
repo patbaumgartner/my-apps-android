@@ -54,8 +54,8 @@ Downloadable builds are published from `.github/workflows/release.yml` (see
   ```
 
 Both jobs sign with the release key held in the repository secrets
-`MA_KEYSTORE_BASE64`, `MA_KEYSTORE_PASSWORD`, `MA_KEY_ALIAS`, and
-`MA_KEYSTORE_PASSWORD`; the workflow fails if they are missing. To set or
+`SR_KEYSTORE_BASE64`, `SR_KEYSTORE_PASSWORD`, `SR_KEY_ALIAS`, and
+`SR_KEYSTORE_PASSWORD`; the workflow fails if they are missing. To set or
 rotate the key, generate a keystore with `keytool` and upload it with
 `gh secret set` — **never commit keystore material**. Keep one backup of the
 keystore outside the repository (password manager / HSM); losing it means

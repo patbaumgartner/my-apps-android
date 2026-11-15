@@ -63,7 +63,7 @@ data class ApprovedApp(
  *   the `Signer certificate SHA-256` line of their release-signing ADR.
  * - my-apps-android: the release key generated for this repository; the fingerprint is
  *   printed by `keytool -list -v` / `apksigner verify --print-certs` and pinned here.
- *   The keystore itself lives only in repository secrets (MA_KEYSTORE_*), never in git.
+ *   The keystore itself lives only in repository secrets (SR_KEYSTORE_*), never in git.
  */
 object TrustRegistry {
     const val GITHUB_OWNER = "patbaumgartner"

@@ -32,7 +32,7 @@ That is the core CI gate — run it before claiming a change is done.
 - The configuration cache is on; a change that reads files at configuration
   time can break it.
 - The release signing config in `app/build.gradle.kts` activates only when
-  `MA_KEYSTORE_FILE` (or a local git-ignored `keystore.properties`) is present,
+  `SR_KEYSTORE_FILE` (or a local git-ignored `keystore.properties`) is present,
   so plain checkouts keep building unsigned release APKs. **Never commit
   keystore material** (`myapps-release.keystore` is git-ignored).
 
@@ -62,4 +62,4 @@ decision logic out of `domain/`.
 Signed builds are published by `.github/workflows/release.yml` — see
 CONTRIBUTING.md "Releases" and the ADR. Snapshot (`snapshot` tag, prerelease)
 on every push to `main`; `vX.Y.Z` tags publish stable releases. Both sign with
-the `MA_KEYSTORE_*` repository secrets and publish `SHA256SUMS`.
+the `SR_KEYSTORE_*` repository secrets and publish `SHA256SUMS`.
