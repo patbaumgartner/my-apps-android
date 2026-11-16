@@ -33,6 +33,19 @@ No public release has been published yet.
   background checks now always run on unmetered networks.
 - Settings: the "Check now" button is aligned with the "Update checks"
   heading in one row.
+
+### Fixed
+
+- Installed sibling apps showed "Not installed": on Android 11+ package
+  visibility is filtered and `AndroidManifest.xml` had no `<queries>` block, so
+  the PackageManager could not see them (myApps itself was always visible, which
+  masked the bug). The manifest now declares exactly the approved registry
+  package IDs; a unit test keeps the two in sync.
+- The version line no longer prints a duplicated label ("Latest: Snapshot ·
+  Snapshot"): the channel label is omitted when it matches the release name.
+- Apps whose candidate build was already offered showed "Latest: —" because the
+  `Unchanged` check outcome did not carry the release; it now does, so the
+  latest tag is always visible.
 - Downloadable builds on the GitHub Releases page: every push to `main`
   publishes a signed **Snapshot** APK (prerelease), and every `vX.Y.Z` tag
   publishes a signed release with APK, AAB, and `SHA256SUMS`

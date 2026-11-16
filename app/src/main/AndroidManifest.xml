@@ -8,6 +8,17 @@
         android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
 
+    <!-- Package visibility (API 30+): without these declarations the PackageManager
+         cannot see the sibling apps and they would wrongly show as "Not installed".
+         Keep in sync with TrustRegistry — TrustRegistryTest enforces it. -->
+    <queries>
+        <package android:name="com.patbaumgartner.android.diceroller" />
+        <package android:name="com.patbaumgartner.android.spacedrepeater" />
+        <package android:name="com.patbaumgartner.android.roomwatchdog" />
+        <package android:name="com.patbaumgartner.android.stringtelephone" />
+        <package android:name="com.patbaumgartner.android.myapps" />
+    </queries>
+
     <application
         android:name=".MyAppsApp"
         android:allowBackup="false"

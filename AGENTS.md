@@ -62,6 +62,11 @@ smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
   must all pass before `PackageInstaller` is invoked. No silent installs.
 - Never infer a signer fingerprint from release notes; take it from the sibling
   repository's ADR and confirm with `apksigner verify --print-certs`.
+- Every `TrustRegistry` packageId must also be declared in the `<queries>` block of
+  `app/src/main/AndroidManifest.xml`: on API 30+ package visibility is filtered, so
+  without it the installed sibling apps cannot be seen and show as "Not installed"
+  (the app always sees itself, which masks the bug for myApps). `TrustRegistryTest`
+  enforces the sync — update both in the same commit when approving a new app.
 - Updates are decided by APK `versionCode` only — never downgrade, never re-offer
   an unchanged snapshot (see `UpdateDecision`). Before downloading, a candidate whose
   tag-derived versionCode (`UpdateDecision.versionCodeFromTag`; `null` for the

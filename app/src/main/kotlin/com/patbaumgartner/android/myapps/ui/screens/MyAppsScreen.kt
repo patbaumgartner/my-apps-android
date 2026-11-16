@@ -113,7 +113,15 @@ fun AppCard(state: AppUiState, onClick: () -> Unit) {
 @Composable
 fun versionLine(state: AppUiState): String {
     val installed = state.installed?.let { "${it.versionName} (${it.versionCode})" } ?: stringResource(R.string.not_installed)
-    val latest = state.release?.let { "${it.name} · ${state.channel.label}" } ?: "—"
+    val latest = state.release?.let { release ->
+        // The snapshot release is titled "Snapshot" and the channel label is "Snapshot"
+        // too — don't print the same word twice.
+        if (release.name.equals(state.channel.label, ignoreCase = true)) {
+            release.name
+        } else {
+            "${release.name} · ${state.channel.label}"
+        }
+    } ?: "—"
     return stringResource(R.string.versions_line, installed, latest)
 }
 
