@@ -24,6 +24,42 @@ class UpdateDecisionTest {
     }
 
     @Test
+    fun `candidate with equal versionCode is not offered when installed`() {
+        assertEquals(UpdateDecision.Offer.NO_UPDATE, UpdateDecision.shouldOffer(10203, "fp-old", "fp-new", 10203))
+        // Even the same fingerprint: an already-installed versionCode is never re-offered.
+        assertEquals(UpdateDecision.Offer.NO_UPDATE, UpdateDecision.shouldOffer(10203, "fp", "fp", 10203))
+    }
+
+    @Test
+    fun `candidate with older versionCode is not offered (no downgrade before download)`() {
+        assertEquals(UpdateDecision.Offer.NO_UPDATE, UpdateDecision.shouldOffer(2_000_000_005L, null, "fp", 10203))
+    }
+
+    @Test
+    fun `candidate with newer versionCode is offered when installed`() {
+        assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(10000, "fp-old", "fp-new", 10203))
+    }
+
+    @Test
+    fun `already-offered build stays skipped even when its versionCode is newer`() {
+        // The fingerprint rule wins for a build the user already chose to install:
+        // it is not nagged again until a new build appears.
+        assertEquals(UpdateDecision.Offer.SKIP_UNCHANGED, UpdateDecision.shouldOffer(10000, "fp", "fp", 10203))
+    }
+
+    @Test
+    fun `unversioned candidate tag falls back to the fingerprint rule`() {
+        // Snapshot tag yields no versionCode: unchanged snapshot is skipped, new one offered.
+        assertEquals(UpdateDecision.Offer.SKIP_UNCHANGED, UpdateDecision.shouldOffer(10000, "fp", "fp", null))
+        assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(10000, "fp-old", "fp-new", null))
+    }
+
+    @Test
+    fun `not installed always offers regardless of candidate versionCode`() {
+        assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(null, "fp", "fp", 1))
+    }
+
+    @Test
     fun `newer archive versionCode proceeds`() {
         assertEquals(UpdateDecision.Install.PROCEED, UpdateDecision.afterDownload(10000, 10001))
     }

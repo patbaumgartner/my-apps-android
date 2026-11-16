@@ -17,8 +17,22 @@ No public release has been published yet.
   verified pipeline.
 - Per-app **Stable / Snapshot** release channels; updates are decided by APK
   `versionCode` only — never a downgrade, never a re-offered unchanged snapshot.
-- Background update checks via WorkManager (battery-conscious, optional
-  Wi-Fi-only), notifications, and system/light/dark appearance.
+- Background update checks via WorkManager (battery-conscious, unmetered
+  networks only), notifications (updates available + app updated), and
+  system/light/dark appearance.
+
+### Changed
+
+- The **Updates** tab lists only apps that actually need an update per their
+  configured channel (Stable/Snapshot) or are not installed: before
+  downloading, a candidate whose tag-derived `versionCode` is not newer than
+  the installed one is no longer offered, so up-to-date apps are neither
+  listed nor re-installed. The My Apps tab always shows the installed
+  version next to the latest.
+- Removed the "Only on unmetered Wi-Fi" settings toggle (it was not usable);
+  background checks now always run on unmetered networks.
+- Settings: the "Check now" button is aligned with the "Update checks"
+  heading in one row.
 - Downloadable builds on the GitHub Releases page: every push to `main`
   publishes a signed **Snapshot** APK (prerelease), and every `vX.Y.Z` tag
   publishes a signed release with APK, AAB, and `SHA256SUMS`

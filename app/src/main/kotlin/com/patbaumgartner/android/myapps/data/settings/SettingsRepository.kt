@@ -38,10 +38,6 @@ class SettingsRepository(context: Context) {
         get() = prefs.getBoolean("bg.enabled", false)
         set(value) = prefs.edit { putBoolean("bg.enabled", value) }
 
-    var backgroundWifiOnly: Boolean
-        get() = prefs.getBoolean("bg.wifiOnly", true)
-        set(value) = prefs.edit { putBoolean("bg.wifiOnly", value) }
-
     var notificationsEnabled: Boolean
         get() = prefs.getBoolean("notifications.enabled", true)
         set(value) = prefs.edit { putBoolean("notifications.enabled", value) }

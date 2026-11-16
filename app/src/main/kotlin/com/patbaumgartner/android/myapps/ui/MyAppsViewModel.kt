@@ -89,7 +89,6 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
     val canInstallUnknown: StateFlow<Boolean> = _canInstallUnknown.asStateFlow()
 
     val backgroundChecksEnabled: StateFlow<Boolean> = MutableStateFlow(settings.backgroundChecksEnabled)
-    val backgroundWifiOnly: StateFlow<Boolean> = MutableStateFlow(settings.backgroundWifiOnly)
     val notificationsEnabled: StateFlow<Boolean> = MutableStateFlow(settings.notificationsEnabled)
 
     private val requestCodes = mutableMapOf<Int, String>()
@@ -216,7 +215,12 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
                     message = text,
                 )
             }
-            if (success) refreshOne(repo)
+            if (success) {
+                _apps.value[repo]?.let { state ->
+                    if (settings.notificationsEnabled) notifier.notifyAppUpdated(state.app.displayName)
+                }
+                refreshOne(repo)
+            }
         }
     }
 
@@ -229,12 +233,6 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
     fun setBackgroundChecks(enabled: Boolean) {
         settings.backgroundChecksEnabled = enabled
         (backgroundChecksEnabled as MutableStateFlow).value = enabled
-        UpdateCheckWorker.schedule(getApplication(), settings)
-    }
-
-    fun setBackgroundWifiOnly(wifiOnly: Boolean) {
-        settings.backgroundWifiOnly = wifiOnly
-        (backgroundWifiOnly as MutableStateFlow).value = wifiOnly
         UpdateCheckWorker.schedule(getApplication(), settings)
     }
 

@@ -4,9 +4,11 @@ package com.patbaumgartner.android.myapps.domain.model
  * Update logic driven by APK `versionCode`, never by tag names.
  *
  * Two decision points:
- * 1. [shouldOffer] — before downloading: skip a candidate identical to the last one
- *    offered (so an unchanged snapshot is never repeatedly offered), always offer when
- *    the app is not installed.
+ * 1. [shouldOffer] — before downloading: always offer when the app is not installed;
+ *    when installed, never offer a candidate whose versionCode is not newer
+ *    ([Offer.NO_UPDATE], so up-to-date apps are not listed or re-installed), and skip a
+ *    candidate identical to the last one offered (so an unchanged snapshot is never
+ *    repeatedly offered).
  * 2. [afterDownload] — after the APK is downloaded and verified: install only when the
  *    archive's versionCode is newer than the installed one. This refuses downgrades,
  *    including the Snapshot→Stable switch until a newer Stable exists.
@@ -25,14 +27,24 @@ object UpdateDecision {
 
         /** Same build as the last one offered while the app was installed; do not re-offer. */
         SKIP_UNCHANGED,
+
+        /** Candidate versionCode is not newer than the installed one; nothing to do. */
+        NO_UPDATE,
     }
 
+    /**
+     * @param candidateVersionCode versionCode derived from the candidate tag
+     *   ([versionCodeFromTag]); `null` when the tag carries no version (e.g. `snapshot`),
+     *   in which case only the fingerprint rule applies.
+     */
     fun shouldOffer(
         installedVersionCode: Long?,
         lastOfferedFingerprint: String?,
         candidateFingerprint: String,
+        candidateVersionCode: Long? = null,
     ): Offer {
         if (installedVersionCode == null) return Offer.YES
+        if (candidateVersionCode != null && candidateVersionCode <= installedVersionCode) return Offer.NO_UPDATE
         if (candidateFingerprint == lastOfferedFingerprint) return Offer.SKIP_UNCHANGED
         return Offer.YES
     }

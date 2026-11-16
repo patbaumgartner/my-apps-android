@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Battery-conscious background update check. Runs periodically only when enabled in
- * Settings; constraints keep it off metered networks unless the user opts in. It only
- * checks and notifies — it never installs anything.
+ * Settings, constrained to unmetered networks. It only checks and notifies — it never
+ * installs anything.
  */
 class UpdateCheckWorker(
     context: Context,
@@ -55,9 +55,8 @@ class UpdateCheckWorker(
                 WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
                 return
             }
-            val networkType = if (settings.backgroundWifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED
             val constraints = Constraints.Builder()
-                .setRequiredNetworkType(networkType)
+                .setRequiredNetworkType(NetworkType.UNMETERED)
                 .build()
             val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(12, TimeUnit.HOURS)
                 .setConstraints(constraints)

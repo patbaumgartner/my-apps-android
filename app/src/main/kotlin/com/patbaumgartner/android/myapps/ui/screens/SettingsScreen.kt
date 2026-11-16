@@ -43,18 +43,15 @@ import kotlinx.coroutines.flow.StateFlow
 @Composable
 fun SettingsScreen(
     backgroundChecks: StateFlow<Boolean>,
-    wifiOnly: StateFlow<Boolean>,
     notifications: StateFlow<Boolean>,
     discovered: StateFlow<List<DiscoveredRepo>>,
     onBackgroundChecks: (Boolean) -> Unit,
-    onWifiOnly: (Boolean) -> Unit,
     onNotifications: (Boolean) -> Unit,
     onCheckNow: () -> Unit,
 ) {
     val resources = LocalResources.current
     var licensesShown by remember { mutableStateOf(false) }
     val background by backgroundChecks.collectAsState()
-    val wifi by wifiOnly.collectAsState()
     val notif by notifications.collectAsState()
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.screen_settings)) }) },
@@ -67,22 +64,24 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(stringResource(R.string.settings_updates), style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(onClick = onCheckNow) { Text(stringResource(R.string.action_check_now)) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        stringResource(R.string.settings_updates),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(onClick = onCheckNow) { Text(stringResource(R.string.action_check_now)) }
+                }
             }
             item {
                 SettingSwitch(
                     title = stringResource(R.string.settings_background_checks),
                     checked = background,
                     onChecked = onBackgroundChecks,
-                )
-            }
-            item {
-                SettingSwitch(
-                    title = stringResource(R.string.settings_wifi_only),
-                    checked = wifi,
-                    enabled = background,
-                    onChecked = onWifiOnly,
                 )
             }
             item {

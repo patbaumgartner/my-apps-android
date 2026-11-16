@@ -41,8 +41,7 @@
     <string name="details_install_permission_needed">Allow "Install unknown apps" for myApps to install updates.</string>
 
     <string name="settings_updates">Update checks</string>
-    <string name="settings_background_checks">Background checks</string>
-    <string name="settings_wifi_only">Only on unmetered Wi-Fi</string>
+    <string name="settings_background_checks">Background checks (unmetered networks)</string>
     <string name="settings_notifications">Notify when updates are available</string>
     <string name="settings_discovered">Discovered repositories (not approved)</string>
     <string name="settings_discovered_hint">Discovery is not authorization: a repository becomes installable only after a reviewed entry in the bundled trust registry.</string>
@@ -61,4 +60,6 @@
     <string name="notification_channel_updates">Updates</string>
     <string name="notification_updates_title">Updates available</string>
     <string name="notification_updates_body">%1$d of your approved apps have an update.</string>
+    <string name="notification_app_updated_title">App updated</string>
+    <string name="notification_app_updated_body">%1$s was updated successfully.</string>
 </resources>
