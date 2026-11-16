@@ -4,7 +4,7 @@ All notable changes are documented here. The project follows [Semantic Versionin
 
 ## Unreleased
 
-No public release has been published yet.
+## [0.2.0] - 2026-11-16
 
 ### Added
 
@@ -53,3 +53,7 @@ No public release has been published yet.
 - Release signing is configurable via `SR_KEYSTORE_*` repository secrets or a
   local git-ignored `keystore.properties`; plain checkouts build unsigned
   release APKs. Never commit keystore material.
+
+## [0.1.0] - 2026-11-15
+
+First public release.
