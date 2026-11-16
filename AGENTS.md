@@ -63,7 +63,11 @@ smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
 - Never infer a signer fingerprint from release notes; take it from the sibling
   repository's ADR and confirm with `apksigner verify --print-certs`.
 - Updates are decided by APK `versionCode` only — never downgrade, never re-offer
-  an unchanged snapshot (see `UpdateDecision`).
+  an unchanged snapshot (see `UpdateDecision`). Before downloading, a candidate whose
+  tag-derived versionCode (`UpdateDecision.versionCodeFromTag`; `null` for the
+  `snapshot` tag, where only the fingerprint rule applies) is not newer than the
+  installed one is rejected with `Offer.NO_UPDATE`, so the Updates tab lists only apps
+  that actually need updating and installed versions are never re-installed.
 
 ## Releases
 

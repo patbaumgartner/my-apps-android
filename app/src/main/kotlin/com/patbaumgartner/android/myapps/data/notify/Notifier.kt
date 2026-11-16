@@ -54,8 +54,29 @@ class Notifier(private val context: Context) {
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_UPDATES, notification)
     }
 
+    @SuppressLint("MissingPermission") // guarded by notificationsAllowed() above
+    fun notifyAppUpdated(appName: String) {
+        if (!notificationsAllowed()) return
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pending = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_UPDATES)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.notification_app_updated_title))
+            .setContentText(context.getString(R.string.notification_app_updated_body, appName))
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_APP_UPDATED, notification)
+    }
+
     companion object {
         const val CHANNEL_UPDATES = "updates"
         const val NOTIFICATION_ID_UPDATES = 1001
+        const val NOTIFICATION_ID_APP_UPDATED = 1002
     }
 }

@@ -86,8 +86,14 @@ class UpdateChecker(
         }
         val fingerprint = UpdateDecision.candidateFingerprint(release, selection.apk.id)
         settings.setLastCheckAt(app.repo, System.currentTimeMillis())
-        when (UpdateDecision.shouldOffer(installed?.versionCode, settings.lastOfferedFingerprint(app.repo), fingerprint)) {
+        // Pre-download gate: the tag-derived versionCode (null for the `snapshot` tag,
+        // where only the fingerprint rule applies) decides whether the candidate is even
+        // worth offering. The authoritative comparison still uses the APK's own
+        // versionCode in [UpdatePipeline.downloadVerifyAndStage].
+        val candidateVersionCode = UpdateDecision.versionCodeFromTag(release.tag)
+        when (UpdateDecision.shouldOffer(installed?.versionCode, settings.lastOfferedFingerprint(app.repo), fingerprint, candidateVersionCode)) {
             UpdateDecision.Offer.SKIP_UNCHANGED -> CheckOutcome.Unchanged(fingerprint)
+            UpdateDecision.Offer.NO_UPDATE -> CheckOutcome.UpToDate(release)
             UpdateDecision.Offer.YES -> if (installed == null) {
                 CheckOutcome.NotInstalled(release, selection, fingerprint)
             } else {

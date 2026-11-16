@@ -23,12 +23,14 @@ updates **itself** through the same verified pipeline.
 
 - **My Apps** — all approved apps with icon, description, installed/latest
   versions and status.
-- **Updates** — actionable updates and not-installed apps, with progress and
-  clear failures.
+- **Updates** — only apps that actually need an update per their configured
+  channel (or are not installed yet), each with an Update/Install action,
+  progress and clear failures. Up-to-date apps are not listed.
 - **Details** — release notes, per-app **Stable / Snapshot** channel toggle,
   Install/Update actions.
 - **Settings** — manual update checks, background checks (battery-conscious via
-  WorkManager, Wi-Fi-only option), notifications, appearance (system/light/dark).
+  WorkManager on unmetered networks), notifications, appearance
+  (system/light/dark).
 
 ## Channels
 
@@ -36,9 +38,13 @@ updates **itself** through the same verified pipeline.
 - **Snapshot** (opt-in per app): `GET /repos/{owner}/{repo}/releases/tags/snapshot`,
   which must be a prerelease.
 
-Updates are decided by APK `versionCode`, never by tags. The app never downgrades,
-never re-offers an unchanged snapshot, and a Snapshot → Stable switch that would
-downgrade waits for a newer Stable release (see `UpdateDecision`).
+Updates are decided by APK `versionCode`, never by tags. Before downloading, a
+candidate whose tag-derived versionCode is not newer than the installed one is
+not offered at all — so the Updates tab lists only apps that actually need
+updating and already-installed versions are never re-installed. The app never
+downgrades, never re-offers an unchanged snapshot, and a Snapshot → Stable
+switch that would downgrade waits for a newer Stable release (see
+`UpdateDecision`).
 
 ## Trust model
 

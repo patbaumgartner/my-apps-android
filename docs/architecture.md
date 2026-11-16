@@ -23,8 +23,8 @@ app/src/main/kotlin/com/patbaumgartner/android/myapps/
 │   ├── install/                  PackageInstaller flow + InstallResultReceiver
 │   │                             (user-approved installs, pending-install recovery)
 │   ├── UpdatePipeline.kt         UpdateChecker + download/verify/install pipeline
-│   ├── work/UpdateCheckWorker.kt WorkManager background checks (battery-conscious)
-│   └── notify/Notifier.kt        update-available notifications
+│   ├── work/UpdateCheckWorker.kt WorkManager background checks (battery-conscious, unmetered)
+│   └── notify/Notifier.kt        update-available + app-updated notifications
 └── ui/                           Compose: My Apps, Updates, Details, Settings;
                                   single ViewModel, brand-cyan theme, Manrope
 ```
@@ -33,8 +33,10 @@ app/src/main/kotlin/com/patbaumgartner/android/myapps/
 
 1. **Check** — `UpdateChecker` reads the per-app channel from settings, fetches
    the release (ETag-cached), parses it (`ReleaseParser`), selects the APK
-   (`ApkSelector`), computes a candidate fingerprint, and asks
-   `UpdateDecision` whether to offer.
+   (`ApkSelector`), computes a candidate fingerprint and tag-derived versionCode,
+   and asks `UpdateDecision` whether to offer. A candidate not newer than the
+   installed versionCode is never offered (`Offer.NO_UPDATE`), so the Updates
+   tab lists only apps that actually need updating.
 2. **Download** — `GitHubClient.download` streams the selected APK over HTTPS
    only, with progress callbacks.
 3. **Verify** — `ApkArchiveReader` reads package ID / versionCode / minSdk /

@@ -1,7 +1,10 @@
 package com.patbaumgartner.android.myapps.ui
 
 import android.Manifest
+import android.app.NotificationManager
+import android.os.Build
 import androidx.compose.ui.test.assertAny
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
@@ -12,6 +15,9 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
 import com.patbaumgartner.android.myapps.R
+import com.patbaumgartner.android.myapps.data.notify.Notifier
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,5 +70,26 @@ class MyAppsAppTest {
         compose.onNodeWithText(str(R.string.action_check_now))
             .assertIsDisplayed()
             .assertHasClickAction()
+    }
+
+    @Test
+    fun settingsScreenHasNoWifiOnlyToggle() {
+        compose.onAllNodesWithText(str(R.string.screen_settings))[0].performClick()
+        // The "Only on unmetered Wi-Fi" toggle was removed; background checks now
+        // always run on unmetered networks.
+        compose.onAllNodesWithText("Only on unmetered Wi-Fi").assertCountEquals(0)
+        // The remaining update-check controls are still there.
+        compose.onNodeWithText(str(R.string.settings_background_checks)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.settings_notifications)).assertIsDisplayed()
+    }
+
+    @Test
+    fun notificationsChannelExistsAndPermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val manager = compose.activity.getSystemService(NotificationManager::class.java)
+            assertNotNull(manager.getNotificationChannel(Notifier.CHANNEL_UPDATES))
+        }
+        // POST_NOTIFICATIONS is granted via GrantPermissionRule above.
+        assertTrue(Notifier(compose.activity).notificationsAllowed())
     }
 }
