@@ -151,7 +151,7 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 is CheckOutcome.Unchanged -> updateState(repo) {
-                    it.copy(installed = installed, status = AppStatus.UNCHANGED, message = null)
+                    it.copy(installed = installed, status = AppStatus.UNCHANGED, release = outcome.release, message = null)
                 }
 
                 is CheckOutcome.Failed -> updateState(repo) {

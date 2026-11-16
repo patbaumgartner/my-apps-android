@@ -19,7 +19,9 @@ app/src/main/kotlin/com/patbaumgartner/android/myapps/
 │   ├── github/GitHubClient.kt    unauthenticated REST client, ETag cache,
 │   │                             timeouts, rate-limit/offline, HTTPS-only downloads
 │   ├── settings/SettingsRepository.kt  channels, last-offered fingerprints, prefs
-│   ├── device/                   InstalledAppRepository, ApkArchiveReader, DeviceInfo
+│   ├── device/                   InstalledAppRepository (sees only the registry
+│   │                             package IDs via manifest <queries>, API 30+),
+│   │                             ApkArchiveReader, DeviceInfo
 │   ├── install/                  PackageInstaller flow + InstallResultReceiver
 │   │                             (user-approved installs, pending-install recovery)
 │   ├── UpdatePipeline.kt         UpdateChecker + download/verify/install pipeline

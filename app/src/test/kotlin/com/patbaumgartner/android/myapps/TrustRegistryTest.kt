@@ -54,4 +54,24 @@ class TrustRegistryTest {
     fun `lookup by package id finds the owning app`() {
         assertEquals("dice-roller-android", TrustRegistry.findByPackageId("com.patbaumgartner.android.diceroller")?.repo)
     }
+
+    @Test
+    fun `every registry package id is declared in manifest queries for package visibility`() {
+        // On API 30+ the PackageManager cannot see other packages unless they are
+        // declared in <queries>; without this, installed apps show as "Not installed".
+        // Unit tests run with the module dir as working dir; fall back to repo root.
+        val manifest = listOf("src/main/AndroidManifest.xml", "app/src/main/AndroidManifest.xml")
+            .map { java.io.File(it) }
+            .firstOrNull { it.isFile }
+            ?: error("AndroidManifest.xml not found (working dir: ${java.io.File("").absolutePath})")
+        val xml = manifest.readText()
+        val queries = xml.substringAfter("<queries>", "").substringBefore("</queries>")
+        assertTrue("manifest has no <queries> block", queries.isNotBlank())
+        TrustRegistry.apps.forEach { app ->
+            assertTrue(
+                "package ${app.packageId} (${app.repo}) is missing from <queries> in AndroidManifest.xml",
+                queries.contains("""android:name="${app.packageId}""""),
+            )
+        }
+    }
 }

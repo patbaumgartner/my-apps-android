@@ -32,7 +32,7 @@ sealed interface CheckOutcome {
         CheckOutcome
 
     data class UpToDate(val release: ReleaseInfo?) : CheckOutcome
-    data class Unchanged(val fingerprint: String) : CheckOutcome
+    data class Unchanged(val release: ReleaseInfo, val fingerprint: String) : CheckOutcome
     data class Failed(val message: String) : CheckOutcome
 }
 
@@ -92,7 +92,7 @@ class UpdateChecker(
         // versionCode in [UpdatePipeline.downloadVerifyAndStage].
         val candidateVersionCode = UpdateDecision.versionCodeFromTag(release.tag)
         when (UpdateDecision.shouldOffer(installed?.versionCode, settings.lastOfferedFingerprint(app.repo), fingerprint, candidateVersionCode)) {
-            UpdateDecision.Offer.SKIP_UNCHANGED -> CheckOutcome.Unchanged(fingerprint)
+            UpdateDecision.Offer.SKIP_UNCHANGED -> CheckOutcome.Unchanged(release, fingerprint)
             UpdateDecision.Offer.NO_UPDATE -> CheckOutcome.UpToDate(release)
             UpdateDecision.Offer.YES -> if (installed == null) {
                 CheckOutcome.NotInstalled(release, selection, fingerprint)
