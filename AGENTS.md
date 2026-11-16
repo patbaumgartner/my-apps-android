@@ -23,7 +23,13 @@ yamllint .
 find . -name '*.sh' -not -path './*/build/*' -exec shellcheck {} +
 ```
 
-That is the core CI gate — run it before claiming a change is done.
+That is the core CI gate — run it before claiming a change is done. Instrumented UI tests
+also run in CI (`connectedDebugAndroidTest` on an emulator job); locally they need a running
+emulator, and `assembleDebugAndroidTest` at least proves they compile and package:
+
+```bash
+./gradlew assembleDebugAndroidTest
+```
 
 ## Build traps
 
@@ -42,7 +48,9 @@ Everything under `domain/` is pure Kotlin — no Android imports — so trust
 enforcement, release parsing, channel/version decisions, ABI selection and
 checksum parsing are covered by plain JUnit4 tests under `app/src/test/`. The
 `data/` layer adapts Android/GitHub APIs to those domain types; do not move
-decision logic out of `domain/`.
+decision logic out of `domain/`. The Compose UI is covered by an instrumented
+smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
+`connectedDebugAndroidTest` in CI).
 
 ## Trust invariants (do not weaken)
 

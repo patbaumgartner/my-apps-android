@@ -122,6 +122,7 @@ dependencies {
 
     testImplementation(libs.junit)
 
+    androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)
     androidTestImplementation(platform(libs.androidx.compose.bom))
