@@ -1,4 +1,8 @@
-# my-apps-android
+# myApps
+
+[![CI](https://github.com/patbaumgartner/my-apps-android/actions/workflows/ci.yml/badge.svg)](https://github.com/patbaumgartner/my-apps-android/actions/workflows/ci.yml)
+[![Security](https://github.com/patbaumgartner/my-apps-android/actions/workflows/security.yml/badge.svg)](https://github.com/patbaumgartner/my-apps-android/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **myApps** is a lightweight, secure Android app manager for `patbaumgartner`'s
 approved applications. It installs and updates **only** apps from a bundled,
@@ -52,29 +56,80 @@ and [docs/architecture.md](docs/architecture.md).
    pipeline verifies and installs myApps updates; pending installs are recovered
    after process death.
 
+## Download
+
+Signed builds are published on the
+[Releases](https://github.com/patbaumgartner/my-apps-android/releases) page:
+
+- **Releases** (`vX.Y.Z` tags): signed APK and AAB, plus `SHA256SUMS` and the
+  signer certificate fingerprint in the release notes.
+- **Snapshot** (prerelease, rebuilt on every push to `main`): the latest
+  signed APK for testing.
+
+Both use the same release key, so they install over each other as updates.
+Verify a download against `SHA256SUMS` before installing. Sideloading on
+Android 8+ requires allowing "Install unknown apps" for the app you open the
+APK with.
+
+## Requirements
+
+- Android 8.0 (API 26) or newer
+- JDK 27
+- Android SDK with platform 37 / build-tools 36.0.0
+
+Gradle needs the Android SDK path from `ANDROID_HOME` or an `sdk.dir` entry in
+`local.properties` (see `local.properties.example`). The first build downloads
+the Gradle distribution and Android dependencies.
+
 ## Building
 
 ```bash
-export ANDROID_HOME=$HOME/Android/Sdk
+export ANDROID_HOME="$HOME/Android/Sdk"
 ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease
 ```
 
-Requires JDK 27 and Android SDK with platform 37 / build-tools 36.0.0.
+Run the same build and test gates as CI:
 
-## Releases
+```bash
+./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease
+yamllint .
+find . -name '*.sh' -not -path './*/build/*' -exec shellcheck {} +
+```
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`) and signed
-with a release key stored **only** in repository secrets (`SR_KEYSTORE_*` — see
-[CONTRIBUTING.md](CONTRIBUTING.md#releases)):
+A release APK built from a plain source checkout is unsigned. To build a
+signed release locally, provide the signing credentials via the
+`SR_KEYSTORE_FILE`, `SR_KEYSTORE_PASSWORD`, `SR_KEY_ALIAS`, and
+`SR_KEY_PASSWORD` environment variables or a local (git-ignored)
+`keystore.properties` file — see [CONTRIBUTING.md](CONTRIBUTING.md#releases)
+and [docs/adr/0001-trust-registry-and-verification.md](docs/adr/0001-trust-registry-and-verification.md).
+Never commit keystore material.
 
-- push to `main` → `snapshot` prerelease (`my-apps-snapshot.apk` + `SHA256SUMS`)
-- tag `vX.Y.Z` → release (`my-apps-X.Y.Z.apk` + `SHA256SUMS`, notes include the
-  signer certificate SHA-256)
+## Documentation
+
+- [docs/architecture.md](docs/architecture.md) — modules, runtime components,
+  dependency boundaries.
+- [docs/adr/0001-trust-registry-and-verification.md](docs/adr/0001-trust-registry-and-verification.md) —
+  the trust model and APK verification pipeline.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development setup, change workflow,
+  validation gates, pull-request expectations.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community expectations and reporting.
+- [SECURITY.md](SECURITY.md) — how to report vulnerabilities privately.
+- [CHANGELOG.md](CHANGELOG.md) — notable changes per release.
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — third-party components
+  and licences.
 
 ## Security
 
-Report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+## About
+
+Settings shows the app version, open-source notices, and author information.
+
+© 2026 [Patrick Baumgartner](https://patbaumgartner.com/) - Crafted with ❤️
 
 ## License
 
-[LICENSE](LICENSE)
+myApps is licensed under the [Apache License 2.0](LICENSE). The bundled
+Manrope typeface is licensed under the SIL Open Font License 1.1; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
