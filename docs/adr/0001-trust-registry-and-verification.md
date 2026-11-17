@@ -54,16 +54,27 @@ Per app, independently:
 ### 3. Update decisions by `versionCode`, never by tags
 
 `UpdateDecision.shouldOffer(installedVersionCode, lastOfferedFingerprint,
-candidateFingerprint)` decides updates:
+candidateFingerprint, candidateVersionCode)` decides offers:
 
 - offer only when the candidate `versionCode` is strictly greater than the
   installed one — **never downgrade**;
-- never re-offer an unchanged snapshot (fingerprint match → skip);
-- switching Snapshot → Stable that would downgrade waits for a newer Stable.
+- never re-offer an unchanged build (fingerprint match → skip);
+- exception: a stable (`vX.Y.Z`) candidate while a snapshot is installed is the
+  Snapshot → Stable channel switch and is offered even with a lower versionCode.
 
 Snapshot `versionCode` is `2_000_000_000 + GITHUB_RUN_NUMBER`; stable
 `vX.Y.Z` maps to `major*10000 + minor*100 + patch`, so snapshots always sort
-above stables of the same era without ever downgrading.
+above stables of the same era. The two constants (`SNAPSHOT_VERSION_CODE_BASE`
+in `UpdateDecision.kt`, the `2000000000` literal in `release.yml`) must stay in
+sync — `scripts/check-snapshot-base.mjs` fails CI otherwise.
+
+After download, `UpdateDecision.afterDownload` re-checks against the APK's own
+versionCode. The Snapshot → Stable switch would be a downgrade, and Android has
+no in-place downgrade API, so it is applied as **uninstall → reinstall** of the
+already-verified APK (`PackageInstaller.uninstall` + `REQUEST_DELETE_PACKAGES`);
+every other older archive is refused. Uninstalling myApps itself kills the
+process and wipes its cache, so a self-switch shows a manual-reinstall hint
+instead of attempting the chain.
 
 ### 4. APK selection (`ApkSelector`)
 

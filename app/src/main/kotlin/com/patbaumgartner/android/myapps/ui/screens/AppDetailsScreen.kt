@@ -163,8 +163,18 @@ fun AppDetailsScreen(
                 val fraction = if (total > 0) state.progressBytes.toFloat() / total else 0f
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
             }
+            if (state.status == AppStatus.UNINSTALLING) {
+                Text(stringResource(R.string.status_uninstalling), style = MaterialTheme.typography.bodySmall)
+            }
             if (state.status == AppStatus.INSTALLING) {
                 Text(stringResource(R.string.status_installing), style = MaterialTheme.typography.bodySmall)
+            }
+            if (state.requiresUninstall && state.status == AppStatus.UPDATE_AVAILABLE) {
+                Text(
+                    stringResource(R.string.update_reinstall_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             state.message?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)

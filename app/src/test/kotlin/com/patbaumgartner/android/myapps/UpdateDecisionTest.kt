@@ -2,6 +2,8 @@ package com.patbaumgartner.android.myapps
 
 import com.patbaumgartner.android.myapps.domain.model.UpdateDecision
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UpdateDecisionTest {
@@ -31,8 +33,17 @@ class UpdateDecisionTest {
     }
 
     @Test
-    fun `candidate with older versionCode is not offered (no downgrade before download)`() {
-        assertEquals(UpdateDecision.Offer.NO_UPDATE, UpdateDecision.shouldOffer(2_000_000_005L, null, "fp", 10203))
+    fun `candidate with older versionCode is not offered when installed stable (no downgrade)`() {
+        assertEquals(UpdateDecision.Offer.NO_UPDATE, UpdateDecision.shouldOffer(20000, null, "fp", 10203))
+    }
+
+    @Test
+    fun `stable candidate is offered over an installed snapshot (channel switch back to stable)`() {
+        // Installed snapshot 2_000_000_005; stable v1.2.3 = 10203 is lower, but switching
+        // channels back to Stable must still be offered (applied as uninstall + reinstall).
+        assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(2_000_000_005L, null, "fp", 10203))
+        // The fingerprint rule still wins once this build was offered.
+        assertEquals(UpdateDecision.Offer.SKIP_UNCHANGED, UpdateDecision.shouldOffer(2_000_000_005L, "fp", "fp", 10203))
     }
 
     @Test
@@ -52,11 +63,21 @@ class UpdateDecisionTest {
         // Snapshot tag yields no versionCode: unchanged snapshot is skipped, new one offered.
         assertEquals(UpdateDecision.Offer.SKIP_UNCHANGED, UpdateDecision.shouldOffer(10000, "fp", "fp", null))
         assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(10000, "fp-old", "fp-new", null))
+        // A new snapshot is also offered over an installed snapshot (fingerprint differs).
+        assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(2_000_000_005L, "fp-old", "fp-new", null))
     }
 
     @Test
     fun `not installed always offers regardless of candidate versionCode`() {
         assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(null, "fp", "fp", 1))
+    }
+
+    @Test
+    fun `snapshot versionCode detection follows the release workflow base`() {
+        assertTrue(UpdateDecision.isSnapshotVersionCode(UpdateDecision.SNAPSHOT_VERSION_CODE_BASE))
+        assertTrue(UpdateDecision.isSnapshotVersionCode(2_000_000_005L))
+        assertFalse(UpdateDecision.isSnapshotVersionCode(UpdateDecision.SNAPSHOT_VERSION_CODE_BASE - 1))
+        assertFalse(UpdateDecision.isSnapshotVersionCode(10203L))
     }
 
     @Test
@@ -70,17 +91,34 @@ class UpdateDecisionTest {
     }
 
     @Test
-    fun `older versionCode is a refused downgrade (snapshot to stable switch waits)`() {
-        // Installed snapshot 2_000_000_005; stable offers 10203 -> must not downgrade.
+    fun `older versionCode over an installed stable is a refused downgrade`() {
+        assertEquals(UpdateDecision.Install.NO_UPDATE, UpdateDecision.afterDownload(20000, 10203))
+    }
+
+    @Test
+    fun `older stable archive over an installed snapshot proceeds as the channel switch`() {
+        // Installed snapshot 2_000_000_005; stable archive 10203: PROCEED only when the
+        // candidate is a stable release — the caller then uninstalls and reinstalls.
         assertEquals(
-            UpdateDecision.Install.NO_UPDATE,
-            UpdateDecision.afterDownload(2_000_000_005L, 10203L),
+            UpdateDecision.Install.PROCEED,
+            UpdateDecision.afterDownload(2_000_000_005L, 10203L, stableRelease = true),
         )
+        // Without the stable-release flag the same numbers are a refused downgrade.
+        assertEquals(UpdateDecision.Install.NO_UPDATE, UpdateDecision.afterDownload(2_000_000_005L, 10203L))
     }
 
     @Test
     fun `initial install proceeds even with low versionCode`() {
         assertEquals(UpdateDecision.Install.PROCEED, UpdateDecision.afterDownload(null, 1L))
+    }
+
+    @Test
+    fun `downgrade install is detected only for a lower code over an installed snapshot`() {
+        assertTrue(UpdateDecision.isDowngradeInstall(2_000_000_005L, 10203L))
+        assertTrue(UpdateDecision.isDowngradeInstall(2_000_000_005L, 2_000_000_005L))
+        assertFalse(UpdateDecision.isDowngradeInstall(20000L, 10203L)) // stable → stable is never allowed
+        assertFalse(UpdateDecision.isDowngradeInstall(null, 10203L)) // not installed
+        assertFalse(UpdateDecision.isDowngradeInstall(2_000_000_005L, 2_000_000_006L)) // newer snapshot is an upgrade
     }
 
     @Test

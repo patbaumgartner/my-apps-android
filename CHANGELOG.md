@@ -4,6 +4,18 @@ All notable changes are documented here. The project follows [Semantic Versionin
 
 ## Unreleased
 
+### Fixed
+
+- Switching an app from the Snapshot channel back to Stable while a snapshot is
+  installed now offers the stable release again: snapshot versionCodes
+  (`2_000_000_000 + run number`) always sorted above stable tag codes, so the
+  app was stuck on "Up to date" and could no longer update. Because Android
+  cannot downgrade in place, the switch is applied as uninstall → reinstall of
+  the already-verified APK (`PackageInstaller.uninstall`); a self-switch of
+  myApps shows a manual-reinstall hint. `scripts/check-snapshot-base.mjs` now
+  keeps the snapshot base in `UpdateDecision.kt` and `release.yml` in sync
+  (enforced in CI).
+
 ## [0.2.0] - 2026-11-16
 
 ### Added

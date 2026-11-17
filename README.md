@@ -42,9 +42,11 @@ Updates are decided by APK `versionCode`, never by tags. Before downloading, a
 candidate whose tag-derived versionCode is not newer than the installed one is
 not offered at all — so the Updates tab lists only apps that actually need
 updating and already-installed versions are never re-installed. The app never
-downgrades, never re-offers an unchanged snapshot, and a Snapshot → Stable
-switch that would downgrade waits for a newer Stable release (see
-`UpdateDecision`).
+downgrades and never re-offers an unchanged snapshot. One exception: switching
+from a Snapshot back to Stable while a snapshot is installed offers the stable
+release even though its versionCode is lower — Android cannot downgrade in
+place, so the app is uninstalled and the verified APK reinstalled (for myApps
+itself this needs a one-time manual reinstall). See `UpdateDecision`.
 
 ## Trust model
 

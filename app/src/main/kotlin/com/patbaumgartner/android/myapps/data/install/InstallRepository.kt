@@ -54,6 +54,28 @@ class InstallRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Requests an uninstall through the system PackageInstaller, which shows its own
+     * confirmation UI. The result arrives in [UninstallResultReceiver]. Needed for the
+     * Snapshot→Stable channel switch: Android cannot install a lower versionCode over an
+     * installed app, so the app is removed first and the verified APK reinstalled after.
+     */
+    fun uninstall(packageId: String, requestCode: Int): Result<Unit> = runCatching {
+        val intent = Intent(context, UninstallResultReceiver::class.java).apply {
+            action = UninstallResultReceiver.ACTION_UNINSTALL_RESULT
+            putExtra(UninstallResultReceiver.EXTRA_REQUEST_CODE, requestCode)
+        }
+        val flags = if (Build.VERSION.SDK_INT >= 31) {
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            @Suppress("DEPRECATION") PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        context.packageManager.packageInstaller.uninstall(
+            packageId,
+            PendingIntent.getBroadcast(context, requestCode, intent, flags).intentSender,
+        )
+    }
+
     companion object {
         fun statusMessage(status: Int, extra: String?): String = when (status) {
             PackageInstaller.STATUS_SUCCESS -> "Installed"
@@ -66,6 +88,20 @@ class InstallRepository(private val context: Context) {
             PackageInstaller.STATUS_FAILURE_INVALID -> "APK invalid"
             PackageInstaller.STATUS_FAILURE_STORAGE -> "Not enough storage"
             else -> "Install failed (status $status)"
+        }
+
+        /** Human-readable text for a PackageInstaller uninstall result status. */
+        fun uninstallStatusMessage(status: Int, extra: String?): String = when (status) {
+            PackageInstaller.STATUS_SUCCESS -> "Uninstalled"
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> "Waiting for your approval"
+            PackageInstaller.STATUS_FAILURE -> "Uninstall failed${extra?.let { ": $it" } ?: ""}"
+            PackageInstaller.STATUS_FAILURE_ABORTED -> "Uninstall cancelled"
+            PackageInstaller.STATUS_FAILURE_BLOCKED -> "Uninstall blocked by the system"
+            PackageInstaller.STATUS_FAILURE_CONFLICT -> "Uninstall conflict"
+            PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> "Uninstall incompatible with this device"
+            PackageInstaller.STATUS_FAILURE_INVALID -> "Uninstall invalid"
+            PackageInstaller.STATUS_FAILURE_STORAGE -> "Not enough storage"
+            else -> "Uninstall failed (status $status)"
         }
     }
 }
