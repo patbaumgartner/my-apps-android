@@ -26,6 +26,8 @@ sealed interface CheckOutcome {
         val release: ReleaseInfo,
         val selection: ApkSelector.Selection,
         val fingerprint: String,
+        /** True when this offer is the Snapshot→Stable channel switch (uninstall + reinstall). */
+        val requiresUninstall: Boolean = false,
     ) : CheckOutcome
 
     data class NotInstalled(val release: ReleaseInfo, val selection: ApkSelector.Selection, val fingerprint: String) :
@@ -91,13 +93,18 @@ class UpdateChecker(
         // worth offering. The authoritative comparison still uses the APK's own
         // versionCode in [UpdatePipeline.downloadVerifyAndStage].
         val candidateVersionCode = UpdateDecision.versionCodeFromTag(release.tag)
+        // A stable candidate over an installed snapshot is the channel switch back to
+        // Stable: it is offered even though its versionCode is lower, and the install is
+        // later applied as uninstall + reinstall (Android cannot downgrade in place).
+        val requiresUninstall = candidateVersionCode != null &&
+            UpdateDecision.isDowngradeInstall(installed?.versionCode, candidateVersionCode)
         when (UpdateDecision.shouldOffer(installed?.versionCode, settings.lastOfferedFingerprint(app.repo), fingerprint, candidateVersionCode)) {
             UpdateDecision.Offer.SKIP_UNCHANGED -> CheckOutcome.Unchanged(release, fingerprint)
             UpdateDecision.Offer.NO_UPDATE -> CheckOutcome.UpToDate(release)
             UpdateDecision.Offer.YES -> if (installed == null) {
                 CheckOutcome.NotInstalled(release, selection, fingerprint)
             } else {
-                CheckOutcome.UpdateAvailable(release, selection, fingerprint)
+                CheckOutcome.UpdateAvailable(release, selection, fingerprint, requiresUninstall)
             }
         }
     }
@@ -114,7 +121,12 @@ class UpdateChecker(
 
 /** Result of downloading, verifying and handing an APK to the system installer. */
 sealed interface PipelineResult {
-    data class ReadyToInstall(val apkFile: File, val archiveVersionCode: Long) : PipelineResult
+    data class ReadyToInstall(
+        val apkFile: File,
+        val archiveVersionCode: Long,
+        /** True for the Snapshot→Stable switch: uninstall first, then install [apkFile]. */
+        val requiresUninstall: Boolean = false,
+    ) : PipelineResult
     data class NoUpdate(val archiveVersionCode: Long, val installedVersionCode: Long) : PipelineResult
     data class Failed(val message: String) : PipelineResult
 }
@@ -168,17 +180,21 @@ class UpdatePipeline(
             deviceAbis = DeviceInfo.supportedAbis,
         ).getOrElse { return@withContext PipelineResult.Failed(it.message ?: "verification failed") }
 
-        // 5. Version gate: use the APK's own versionCode; never downgrade.
+        // 5. Version gate: use the APK's own versionCode; never downgrade — except the
+        // Snapshot→Stable channel switch, which is applied as uninstall + reinstall.
         val installed = installedApps.get(app.packageId)
-        when (UpdateDecision.afterDownload(installed?.versionCode, meta.versionCode)) {
+        val stableRelease = UpdateDecision.versionCodeFromTag(release.tag) != null
+        when (UpdateDecision.afterDownload(installed?.versionCode, meta.versionCode, stableRelease)) {
             UpdateDecision.Install.NO_UPDATE -> PipelineResult.NoUpdate(meta.versionCode, installed!!.versionCode)
             UpdateDecision.Install.PROCEED -> {
+                val requiresUninstall = UpdateDecision.isDowngradeInstall(installed?.versionCode, meta.versionCode)
                 settings.pendingInstall = SettingsRepository.PendingInstall(
                     repo = app.repo,
                     expectedVersionCode = meta.versionCode,
                     apkFileName = apkFile.name,
+                    requiresUninstall = requiresUninstall,
                 )
-                PipelineResult.ReadyToInstall(apkFile, meta.versionCode)
+                PipelineResult.ReadyToInstall(apkFile, meta.versionCode, requiresUninstall)
             }
         }
     }
@@ -189,6 +205,7 @@ class UpdatePipeline(
             repo = app.repo,
             expectedVersionCode = settings.pendingInstall?.expectedVersionCode ?: -1L,
             apkFileName = apkFile.name,
+            requiresUninstall = settings.pendingInstall?.requiresUninstall ?: false,
         )
         return installer.install(apkFile, app.displayName, requestCode)
     }

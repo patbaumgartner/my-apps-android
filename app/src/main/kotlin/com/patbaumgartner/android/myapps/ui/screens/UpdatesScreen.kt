@@ -104,10 +104,26 @@ fun UpdatesScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        if (state.status == AppStatus.UNINSTALLING) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.status_uninstalling),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         if (state.status == AppStatus.INSTALLING) {
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 stringResource(R.string.status_installing),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (state.requiresUninstall && state.status == AppStatus.UPDATE_AVAILABLE) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                stringResource(R.string.update_reinstall_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

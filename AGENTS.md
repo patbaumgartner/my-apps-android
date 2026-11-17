@@ -21,6 +21,7 @@ export ANDROID_HOME="$HOME/Android/Sdk"
 ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease
 yamllint .
 find . -name '*.sh' -not -path './*/build/*' -exec shellcheck {} +
+node scripts/check-snapshot-base.mjs
 ```
 
 That is the core CI gate — run it before claiming a change is done. Instrumented UI tests
@@ -72,7 +73,15 @@ smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
   tag-derived versionCode (`UpdateDecision.versionCodeFromTag`; `null` for the
   `snapshot` tag, where only the fingerprint rule applies) is not newer than the
   installed one is rejected with `Offer.NO_UPDATE`, so the Updates tab lists only apps
-  that actually need updating and installed versions are never re-installed.
+  that actually need updating and installed versions are never re-installed. The one
+  exception is a stable (`vX.Y.Z`) candidate while a snapshot is installed — the
+  Snapshot→Stable channel switch — which is offered even though its versionCode is
+  lower. Android has no in-place downgrade, so that switch is applied as uninstall →
+  reinstall of the already-verified APK (`PackageInstaller.uninstall`, needs
+  `REQUEST_DELETE_PACKAGES`); uninstalling myApps itself kills the process, so a
+  self-switch shows a manual-reinstall hint instead. `SNAPSHOT_VERSION_CODE_BASE` in
+  `UpdateDecision.kt` and the `2000000000` literal in `.github/workflows/release.yml`
+  must stay in sync — `scripts/check-snapshot-base.mjs` enforces it in CI.
 
 ## Releases
 

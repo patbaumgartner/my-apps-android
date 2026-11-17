@@ -1,8 +1,10 @@
 package com.patbaumgartner.android.myapps.ui
 
 import android.app.Application
+import android.content.pm.PackageInstaller
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.patbaumgartner.android.myapps.R
 import com.patbaumgartner.android.myapps.data.CheckOutcome
 import com.patbaumgartner.android.myapps.data.PipelineResult
 import com.patbaumgartner.android.myapps.data.UpdateChecker
@@ -14,6 +16,7 @@ import com.patbaumgartner.android.myapps.data.device.InstalledAppRepository
 import com.patbaumgartner.android.myapps.data.github.GitHubClient
 import com.patbaumgartner.android.myapps.data.install.InstallRepository
 import com.patbaumgartner.android.myapps.data.install.InstallResultReceiver
+import com.patbaumgartner.android.myapps.data.install.UninstallResultReceiver
 import com.patbaumgartner.android.myapps.data.notify.Notifier
 import com.patbaumgartner.android.myapps.data.settings.SettingsRepository
 import com.patbaumgartner.android.myapps.data.work.UpdateCheckWorker
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 enum class AppStatus {
     IDLE,
@@ -38,6 +42,7 @@ enum class AppStatus {
     UP_TO_DATE,
     UNCHANGED,
     DOWNLOADING,
+    UNINSTALLING,
     INSTALLING,
     INSTALL_FAILED,
     CHECK_FAILED,
@@ -51,6 +56,8 @@ data class AppUiState(
     val release: ReleaseInfo? = null,
     val selection: ApkSelector.Selection? = null,
     val fingerprint: String? = null,
+    /** True when the offered update is the Snapshot→Stable switch (uninstall + reinstall). */
+    val requiresUninstall: Boolean = false,
     val progressBytes: Long = 0,
     val totalBytes: Long = -1,
     val message: String? = null,
@@ -92,6 +99,7 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
     val notificationsEnabled: StateFlow<Boolean> = MutableStateFlow(settings.notificationsEnabled)
 
     private val requestCodes = mutableMapOf<Int, String>()
+    private val uninstallRequestCodes = mutableMapOf<Int, String>()
     private var nextRequestCode = 1000
 
     init {
@@ -103,6 +111,16 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 val repo = requestCodes.remove(code) ?: return@Listener
                 onInstallResult(repo, status, message)
+            }
+        }
+        UninstallResultReceiver.listener = UninstallResultReceiver.Listener { code, status, message ->
+            if (status == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                // The system consent dialog is showing; the final status arrives later with
+                // the same request code, so the mapping must stay until a terminal status.
+                uninstallRequestCodes[code]?.let { onUninstallResult(it, status, message) }
+            } else {
+                val repo = uninstallRequestCodes.remove(code) ?: return@Listener
+                onUninstallResult(repo, status, message)
             }
         }
         // Recover state after a process replacement (notably self-update).
@@ -133,6 +151,7 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
                         release = outcome.release,
                         selection = outcome.selection,
                         fingerprint = outcome.fingerprint,
+                        requiresUninstall = outcome.requiresUninstall,
                     )
                 }
 
@@ -186,17 +205,79 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
 
                 is PipelineResult.ReadyToInstall -> {
                     settings.setLastOfferedFingerprint(repo, state.fingerprint.orEmpty())
-                    updateState(repo) { it.copy(status = AppStatus.INSTALLING) }
-                    val code = nextRequestCode++
-                    requestCodes[code] = repo
-                    installer.install(result.apkFile, state.app.displayName, code).onFailure { error ->
-                        requestCodes.remove(code)
+                    if (result.requiresUninstall && repo == TrustRegistry.SELF_REPO) {
+                        // Uninstalling ourselves kills this process and wipes the staged
+                        // APK, so the switch back to Stable needs a one-time manual reinstall.
                         updateState(repo) {
-                            it.copy(status = AppStatus.INSTALL_FAILED, message = error.message)
+                            it.copy(
+                                status = AppStatus.UPDATE_AVAILABLE,
+                                requiresUninstall = true,
+                                message = getApplication<Application>().getString(R.string.update_self_reinstall),
+                            )
                         }
+                    } else if (result.requiresUninstall) {
+                        // Snapshot → Stable: Android cannot downgrade in place, so uninstall
+                        // the snapshot first; the verified APK is installed on success.
+                        updateState(repo) { it.copy(status = AppStatus.UNINSTALLING, message = null) }
+                        val code = nextRequestCode++
+                        uninstallRequestCodes[code] = repo
+                        installer.uninstall(state.app.packageId, code).onFailure { error ->
+                            uninstallRequestCodes.remove(code)
+                            updateState(repo) {
+                                it.copy(status = AppStatus.INSTALL_FAILED, message = error.message)
+                            }
+                        }
+                    } else {
+                        updateState(repo) { it.copy(status = AppStatus.INSTALLING) }
+                        requestInstall(repo, result.apkFile)
                     }
                 }
             }
+        }
+    }
+
+    /** Hands a verified APK to the system installer (user approves in the system UI). */
+    private fun requestInstall(repo: String, apkFile: File) {
+        val code = nextRequestCode++
+        requestCodes[code] = repo
+        val label = _apps.value[repo]?.app?.displayName ?: repo
+        installer.install(apkFile, label, code).onFailure { error ->
+            requestCodes.remove(code)
+            updateState(repo) {
+                it.copy(status = AppStatus.INSTALL_FAILED, message = error.message)
+            }
+        }
+    }
+
+    private fun onUninstallResult(repo: String, status: Int, message: String?) {
+        viewModelScope.launch {
+            if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                // Not terminal: keep UNINSTALLING while the system shows the consent UI.
+                updateState(repo) { it.copy(status = AppStatus.UNINSTALLING, message = null) }
+                return@launch
+            }
+            if (status != PackageInstaller.STATUS_SUCCESS) {
+                settings.pendingInstall = null
+                updateState(repo) {
+                    it.copy(
+                        status = AppStatus.INSTALL_FAILED,
+                        message = InstallRepository.uninstallStatusMessage(status, message),
+                    )
+                }
+                return@launch
+            }
+            // Uninstalled — install the staged, already-verified APK of the stable release.
+            val staged = settings.pendingInstall?.apkFileName
+                ?.let { File(getApplication<Application>().cacheDir, "apks/$it") }
+            if (staged == null || !staged.exists()) {
+                settings.pendingInstall = null
+                updateState(repo) {
+                    it.copy(status = AppStatus.INSTALL_FAILED, message = "Staged APK is missing after uninstall")
+                }
+                return@launch
+            }
+            updateState(repo) { it.copy(status = AppStatus.INSTALLING, message = null) }
+            requestInstall(repo, staged)
         }
     }
 
@@ -226,7 +307,9 @@ class MyAppsViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setChannel(repo: String, channel: Channel) {
         settings.setChannel(repo, channel)
-        updateState(repo) { it.copy(channel = channel, status = AppStatus.IDLE, release = null, selection = null) }
+        updateState(repo) {
+            it.copy(channel = channel, status = AppStatus.IDLE, release = null, selection = null, requiresUninstall = false)
+        }
         refreshOne(repo)
     }
 
