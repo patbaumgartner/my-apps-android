@@ -22,4 +22,5 @@ val GraphiteLight = Color(0xFF1E2426)
 
 val Coral = Color(0xFFC2603F)
 val CoralLight = Color(0xFFE79274)
+val CoralDeep = Color(0xFFAC4B2F)
 val LeafGreen = Color(0xFF43A047)
