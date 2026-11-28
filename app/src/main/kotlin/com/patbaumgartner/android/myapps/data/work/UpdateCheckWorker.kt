@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Battery-conscious background update check. Runs periodically only when enabled in
- * Settings, constrained to unmetered networks. It only checks and notifies — it never
- * installs anything.
+ * Settings, constrained to unmetered networks. It only checks and notifies about normal
+ * upgrades — manual channel switches stay visible in the UI and it never installs anything.
  */
 class UpdateCheckWorker(
     context: Context,
@@ -36,7 +36,8 @@ class UpdateCheckWorker(
         for (app in TrustRegistry.apps) {
             val installed = installedApps.get(app.packageId)
             when (val outcome = checker.check(app, installed)) {
-                is com.patbaumgartner.android.myapps.data.CheckOutcome.UpdateAvailable -> updates++
+                is com.patbaumgartner.android.myapps.data.CheckOutcome.UpdateAvailable ->
+                    if (!outcome.requiresUninstall) updates++
                 is com.patbaumgartner.android.myapps.data.CheckOutcome.NotInstalled -> Unit
                 else -> Unit
             }

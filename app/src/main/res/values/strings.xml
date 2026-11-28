@@ -7,7 +7,7 @@
     <string name="screen_settings">Settings</string>
 
     <string name="my_apps_subtitle">Only approved apps from my public GitHub Releases.</string>
-    <string name="updates_subtitle">Install or update your approved apps. Nothing installs without your approval.</string>
+    <string name="updates_subtitle">Install or update your approved apps. Snapshot→Stable changes are manual only. Nothing installs without your approval.</string>
     <string name="updates_none">Everything is up to date.</string>
 
     <string name="action_install">Install</string>
@@ -28,15 +28,14 @@
     <string name="status_working">Working…</string>
     <string name="status_failed">Failed</string>
     <string name="status_installing">Waiting for your approval…</string>
-    <string name="status_uninstalling">Uninstalling the snapshot first…</string>
-    <string name="update_reinstall_hint">Switching from a snapshot back to Stable: the app is briefly uninstalled and then reinstalled (Android cannot downgrade in place).</string>
-    <string name="update_self_reinstall">myApps cannot reinstall itself automatically: uninstall myApps, then install the stable APK from the Releases page (same signing key, your apps stay installed).</string>
+    <string name="status_manual_action">Manual action only</string>
+    <string name="update_reinstall_hint">Manual action only: Android cannot install an older stable version over a snapshot. Export or back up app data where available before manually uninstalling the snapshot. Uninstalling erases app data, including decks, presets, credentials, and settings. Then verify the stable APK against SHA256SUMS and install it from the app\'s Releases page.</string>
 
     <string name="download_progress">%1$d / %2$d MB</string>
 
     <string name="details_versions">Versions</string>
     <string name="details_channel">Channel</string>
-    <string name="details_channel_hint">Stable uses the latest release; Snapshot (opt-in) follows the snapshot prerelease. Switching from a snapshot back to Stable reinstalls the stable release — Android cannot downgrade in place, so the app is uninstalled first (myApps itself needs a one-time manual reinstall).</string>
+    <string name="details_channel_hint">Stable uses the latest release; Snapshot (opt-in) follows the snapshot prerelease. Returning to Stable from Snapshot is manual only and requires uninstalling the snapshot, which erases app data. Export or back up decks, presets, credentials, and settings where available first.</string>
     <string name="details_channel_release">%1$s channel · tag %2$s · %3$s</string>
     <string name="details_repo">Repository: github.com/%1$s/%2$s</string>
     <string name="details_asset">APK: %1$s (%2$d MB)</string>

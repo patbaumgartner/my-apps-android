@@ -37,17 +37,20 @@ app/src/main/kotlin/com/patbaumgartner/android/myapps/
    the release (ETag-cached), parses it (`ReleaseParser`), selects the APK
    (`ApkSelector`), computes a candidate fingerprint and tag-derived versionCode,
    and asks `UpdateDecision` whether to offer. A candidate not newer than the
-   installed versionCode is never offered (`Offer.NO_UPDATE`), so the Updates
-   tab lists only apps that actually need updating.
-2. **Download** — `GitHubClient.download` streams the selected APK over HTTPS
-   only, with progress callbacks.
+   installed versionCode is never offered (`Offer.NO_UPDATE`). Snapshot→Stable
+   is the exception: it remains visible as **Manual action only**, with no
+   automatic downgrade or uninstall.
+2. **Download** — for normal upgrades, `GitHubClient.download` streams the
+   selected APK over HTTPS only, with progress callbacks.
 3. **Verify** — `ApkArchiveReader` reads package ID / versionCode / minSdk /
    signer from the APK archive; `Checksums` hashes the file; `ApkVerifier`
    compares everything against `TrustRegistry` + `SHA256SUMS`. Any failure aborts
    the install with a clear message.
-4. **Install** — `InstallRepository` hands the verified APK to
-   `PackageInstaller`; the user approves; `InstallResultReceiver` records the
-   outcome and pending installs survive process death.
+4. **Install** — for normal upgrades, `InstallRepository` hands the verified APK
+   to `PackageInstaller`; the user approves and `InstallResultReceiver` records
+   the outcome. A Snapshot→Stable downgrade instead returns
+   `ManualActionRequired`, leaves the app installed, and shows export/backup and
+   data-erasure guidance. There is no uninstall API or receiver in the app.
 
 ## Key decisions
 
@@ -57,8 +60,9 @@ Notable deviations from the sibling `dice-roller-android` patterns:
 - **Networking** uses `HttpURLConnection` + `org.json` instead of adding an HTTP
   library — the app makes only a handful of GitHub API calls and needs ETag
   caching, not a full client.
-- **No AAB/Play publishing**: myApps is sideloaded only, so the release workflow
-  publishes a universal APK + `SHA256SUMS` (no `.aab`).
+- **Sideload-first distribution**: snapshots publish a signed universal APK +
+  `SHA256SUMS`; stable tags additionally publish a signed AAB for Play-style
+  distribution.
 - **Self-update** is in-scope: `my-apps-android` is a registry entry and uses the
   same pipeline, which dice-roller does not do.
 - **Per-ABI split APKs** (`PER_ABI` mode) are supported for String Telephone;

@@ -140,18 +140,27 @@ fun AppDetailsScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = onInstall,
-                    enabled = (state.status == AppStatus.UPDATE_AVAILABLE || state.status == AppStatus.NOT_INSTALLED) &&
-                        canInstall,
-                ) {
+                if (state.status == AppStatus.MANUAL_ACTION_REQUIRED) {
                     Text(
-                        if (state.status == AppStatus.NOT_INSTALLED) {
-                            stringResource(R.string.action_install)
-                        } else {
-                            stringResource(R.string.action_update)
-                        },
+                        stringResource(R.string.status_manual_action),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.CenterVertically),
                     )
+                } else {
+                    Button(
+                        onClick = onInstall,
+                        enabled = (state.status == AppStatus.UPDATE_AVAILABLE || state.status == AppStatus.NOT_INSTALLED) &&
+                            canInstall,
+                    ) {
+                        Text(
+                            if (state.status == AppStatus.NOT_INSTALLED) {
+                                stringResource(R.string.action_install)
+                            } else {
+                                stringResource(R.string.action_update)
+                            },
+                        )
+                    }
                 }
                 androidx.compose.material3.OutlinedButton(onClick = onRefresh) {
                     Text(stringResource(R.string.action_check_now))
@@ -163,18 +172,8 @@ fun AppDetailsScreen(
                 val fraction = if (total > 0) state.progressBytes.toFloat() / total else 0f
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
             }
-            if (state.status == AppStatus.UNINSTALLING) {
-                Text(stringResource(R.string.status_uninstalling), style = MaterialTheme.typography.bodySmall)
-            }
             if (state.status == AppStatus.INSTALLING) {
                 Text(stringResource(R.string.status_installing), style = MaterialTheme.typography.bodySmall)
-            }
-            if (state.requiresUninstall && state.status == AppStatus.UPDATE_AVAILABLE) {
-                Text(
-                    stringResource(R.string.update_reinstall_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             state.message?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)

@@ -69,12 +69,14 @@ in `UpdateDecision.kt`, the `2000000000` literal in `release.yml`) must stay in
 sync — `scripts/check-snapshot-base.mjs` fails CI otherwise.
 
 After download, `UpdateDecision.afterDownload` re-checks against the APK's own
-versionCode. The Snapshot → Stable switch would be a downgrade, and Android has
-no in-place downgrade API, so it is applied as **uninstall → reinstall** of the
-already-verified APK (`PackageInstaller.uninstall` + `REQUEST_DELETE_PACKAGES`);
-every other older archive is refused. Uninstalling myApps itself kills the
-process and wipes its cache, so a self-switch shows a manual-reinstall hint
-instead of attempting the chain.
+versionCode. The Snapshot → Stable switch returns `MANUAL_ACTION_REQUIRED` for
+all apps, including myApps. Android has no supported data-preserving in-place
+downgrade API, and automatic uninstall would erase app data, so the app never
+calls `PackageInstaller.uninstall` or requests `REQUEST_DELETE_PACKAGES`. The UI
+keeps the choice visible as **Manual action only** and warns the user to export
+or back up decks, presets, credentials, and settings where available before a
+manual uninstall and verified stable installation. Every other older archive is
+refused; normal upgrades continue through the verified install pipeline.
 
 ### 4. APK selection (`ApkSelector`)
 
