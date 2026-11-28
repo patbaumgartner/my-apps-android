@@ -40,7 +40,7 @@ class UpdateDecisionTest {
     @Test
     fun `stable candidate is offered over an installed snapshot (channel switch back to stable)`() {
         // Installed snapshot 2_000_000_005; stable v1.2.3 = 10203 is lower, but switching
-        // channels back to Stable must still be offered (applied as uninstall + reinstall).
+        // channels back to Stable must remain visible as a manual action.
         assertEquals(UpdateDecision.Offer.YES, UpdateDecision.shouldOffer(2_000_000_005L, null, "fp", 10203))
         // The fingerprint rule still wins once this build was offered.
         assertEquals(UpdateDecision.Offer.SKIP_UNCHANGED, UpdateDecision.shouldOffer(2_000_000_005L, "fp", "fp", 10203))
@@ -96,11 +96,10 @@ class UpdateDecisionTest {
     }
 
     @Test
-    fun `older stable archive over an installed snapshot proceeds as the channel switch`() {
-        // Installed snapshot 2_000_000_005; stable archive 10203: PROCEED only when the
-        // candidate is a stable release — the caller then uninstalls and reinstalls.
+    fun `older stable archive over an installed snapshot requires manual action`() {
+        // Never invoke an automatic uninstall: it would erase the sibling app's data.
         assertEquals(
-            UpdateDecision.Install.PROCEED,
+            UpdateDecision.Install.MANUAL_ACTION_REQUIRED,
             UpdateDecision.afterDownload(2_000_000_005L, 10203L, stableRelease = true),
         )
         // Without the stable-release flag the same numbers are a refused downgrade.

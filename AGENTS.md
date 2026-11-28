@@ -12,25 +12,29 @@ file in the same commit — a stale guide misleads rather than merely ages.
 
 ## Build and validate
 
-Gradle needs the SDK location from `ANDROID_HOME` or `sdk.dir` in
-`local.properties`, or it stops with `SDK location not found`. Builds on
-JDK 27, same as CI (bytecode target stays 17).
+Validation requires JDK 27 (bytecode target 17), Android SDK platform 37.1
+(`compileSdkMinor = 1`), Node.js 18 or newer for `node:test`, Bash, jq,
+yamllint, and ShellCheck. Gradle needs the SDK location from `ANDROID_HOME` or
+`sdk.dir` in `local.properties`, or it stops with `SDK location not found`.
 
 ```bash
 export ANDROID_HOME="$HOME/Android/Sdk"
 ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease
+./gradlew assembleDebugAndroidTest bundleRelease
+node scripts/check-ci-wiring.mjs
+node --test scripts/check-ci-wiring.test.mjs
+node scripts/check-manual-channel-switch.mjs
+node --test scripts/auto-merge-preflight.test.mjs
+node scripts/check-snapshot-base.mjs
 yamllint .
 find . -name '*.sh' -not -path './*/build/*' -exec shellcheck {} +
-node scripts/check-snapshot-base.mjs
+git diff --check
 ```
 
-That is the core CI gate — run it before claiming a change is done. Instrumented UI tests
-also run in CI (`connectedDebugAndroidTest` on an emulator job); locally they need a running
-emulator, and `assembleDebugAndroidTest` at least proves they compile and package:
-
-```bash
-./gradlew assembleDebugAndroidTest
-```
+That is the full local artifact and static gate — run it before claiming a
+change is done. Instrumented UI tests also execute in CI via
+`connectedDebugAndroidTest`; locally that command needs a running emulator.
+`assembleDebugAndroidTest` only proves the tests compile and package.
 
 ## Build traps
 
@@ -49,9 +53,9 @@ Everything under `domain/` is pure Kotlin — no Android imports — so trust
 enforcement, release parsing, channel/version decisions, ABI selection and
 checksum parsing are covered by plain JUnit4 tests under `app/src/test/`. The
 `data/` layer adapts Android/GitHub APIs to those domain types; do not move
-decision logic out of `domain/`. The Compose UI is covered by an instrumented
-smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
-`connectedDebugAndroidTest` in CI).
+decision logic out of `domain/`. The Compose UI is covered by instrumented
+suites in `app/src/androidTest` (`MyAppsAppTest` and `ManualChannelSwitchTest`,
+run via `connectedDebugAndroidTest` in CI).
 
 ## Trust invariants (do not weaken)
 
@@ -68,20 +72,21 @@ smoke suite in `app/src/androidTest` (`MyAppsAppTest`, run via
   without it the installed sibling apps cannot be seen and show as "Not installed"
   (the app always sees itself, which masks the bug for myApps). `TrustRegistryTest`
   enforces the sync — update both in the same commit when approving a new app.
-- Updates are decided by APK `versionCode` only — never downgrade, never re-offer
-  an unchanged snapshot (see `UpdateDecision`). Before downloading, a candidate whose
-  tag-derived versionCode (`UpdateDecision.versionCodeFromTag`; `null` for the
-  `snapshot` tag, where only the fingerprint rule applies) is not newer than the
-  installed one is rejected with `Offer.NO_UPDATE`, so the Updates tab lists only apps
-  that actually need updating and installed versions are never re-installed. The one
-  exception is a stable (`vX.Y.Z`) candidate while a snapshot is installed — the
-  Snapshot→Stable channel switch — which is offered even though its versionCode is
-  lower. Android has no in-place downgrade, so that switch is applied as uninstall →
-  reinstall of the already-verified APK (`PackageInstaller.uninstall`, needs
-  `REQUEST_DELETE_PACKAGES`); uninstalling myApps itself kills the process, so a
-  self-switch shows a manual-reinstall hint instead. `SNAPSHOT_VERSION_CODE_BASE` in
-  `UpdateDecision.kt` and the `2000000000` literal in `.github/workflows/release.yml`
-  must stay in sync — `scripts/check-snapshot-base.mjs` enforces it in CI.
+- Updates are decided by APK `versionCode` only — never downgrade automatically,
+  never re-offer an unchanged snapshot (see `UpdateDecision`). Before downloading,
+  a candidate whose tag-derived versionCode (`UpdateDecision.versionCodeFromTag`;
+  `null` for the `snapshot` tag, where only the fingerprint rule applies) is not
+  newer than the installed one is rejected with `Offer.NO_UPDATE`. The exception is
+  a stable (`vX.Y.Z`) candidate while a snapshot is installed: Snapshot→Stable
+  remains visible as **Manual action only**, never as an ordinary update. Android
+  has no supported data-preserving in-place downgrade, so the app must never call
+  `PackageInstaller.uninstall`. The UI warns that a manual uninstall erases app
+  data (decks, presets, credentials/settings) and tells users to export/back up
+  where available before installing a verified stable APK. Normal verified
+  upgrades still use `PackageInstaller`. `SNAPSHOT_VERSION_CODE_BASE` in
+  `UpdateDecision.kt` and the `2000000000` literal in
+  `.github/workflows/release.yml` must stay in sync —
+  `scripts/check-snapshot-base.mjs` enforces it in CI.
 
 ## Releases
 

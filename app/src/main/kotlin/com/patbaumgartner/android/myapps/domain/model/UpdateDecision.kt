@@ -12,9 +12,9 @@ package com.patbaumgartner.android.myapps.domain.model
  *    snapshot is installed: that is the user switching channels back to Stable, so it is
  *    offered even though its versionCode is lower (see [isDowngradeInstall]).
  * 2. [afterDownload] — after the APK is downloaded and verified: install only when the
- *    archive's versionCode is newer than the installed one, or when a stable release is
- *    installed over a snapshot (the channel switch, applied as uninstall + reinstall
- *    because Android cannot downgrade in place). Every other downgrade is refused.
+ *    archive's versionCode is newer than the installed one. A stable release over a
+ *    snapshot requires manual action because Android has no supported in-place downgrade
+ *    that preserves app data. Every other downgrade is refused.
  */
 object UpdateDecision {
 
@@ -36,7 +36,7 @@ object UpdateDecision {
     fun candidateFingerprint(release: ReleaseInfo, apkAssetId: Long): String = "${release.id}:$apkAssetId:${release.tag}"
 
     enum class Offer {
-        /** Download, verify and prompt installation. */
+        /** Present the candidate; normal upgrades install, downgrades require manual action. */
         YES,
 
         /** Same build as the last one offered while the app was installed; do not re-offer. */
@@ -68,8 +68,11 @@ object UpdateDecision {
     }
 
     enum class Install {
-        /** versionCode is newer, the app is not installed, or this is the Snapshot→Stable channel switch: proceed. */
+        /** The archive is newer or the app is not installed: proceed with a verified install. */
         PROCEED,
+
+        /** Snapshot→Stable would downgrade: show data-loss guidance, never uninstall automatically. */
+        MANUAL_ACTION_REQUIRED,
 
         /** Archive versionCode <= installed and not a channel switch: no update, no downgrade. */
         NO_UPDATE,
@@ -77,22 +80,22 @@ object UpdateDecision {
 
     /**
      * @param stableRelease true when the candidate is a stable (`vX.Y.Z`) release, i.e. the
-     *   user switched the channel from Snapshot back to Stable. Android has no in-place
-     *   downgrade, so this case is applied as uninstall + reinstall by the caller
-     *   ([isDowngradeInstall]); every other older archive is refused.
+     *   user switched the channel from Snapshot back to Stable. Android has no supported
+     *   data-preserving in-place downgrade, so this case requires manual action; every
+     *   other older archive is refused.
      */
     fun afterDownload(installedVersionCode: Long?, archiveVersionCode: Long, stableRelease: Boolean = false): Install =
         when {
             installedVersionCode == null || archiveVersionCode > installedVersionCode -> Install.PROCEED
-            stableRelease && isSnapshotVersionCode(installedVersionCode) -> Install.PROCEED
+            stableRelease && isSnapshotVersionCode(installedVersionCode) -> Install.MANUAL_ACTION_REQUIRED
             else -> Install.NO_UPDATE
         }
 
     /**
      * True when installing [candidateVersionCode] over [installedVersionCode] is the
      * Snapshot→Stable channel switch: a lower versionCode over an installed snapshot.
-     * Android refuses downgrades at install time, so the caller must uninstall first and
-     * reinstall the verified APK afterwards.
+     * Android refuses downgrades at install time. The caller must show manual-action
+     * guidance and must never uninstall automatically because that erases app data.
      */
     fun isDowngradeInstall(installedVersionCode: Long?, candidateVersionCode: Long): Boolean =
         installedVersionCode != null &&

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -42,7 +41,9 @@ fun UpdatesScreen(
     val snapshot by apps.collectAsState()
     val refreshing = snapshot.values.any { it.status == AppStatus.CHECKING }
     val actionable = snapshot.values.filter {
-        it.status == AppStatus.UPDATE_AVAILABLE || it.status == AppStatus.NOT_INSTALLED
+        it.status == AppStatus.UPDATE_AVAILABLE ||
+            it.status == AppStatus.NOT_INSTALLED ||
+            it.status == AppStatus.MANUAL_ACTION_REQUIRED
     }.sortedBy { it.app.displayName }
     PullToRefreshBox(isRefreshing = refreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -80,17 +81,25 @@ fun UpdatesScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Button(
-                                onClick = { onInstall(state.app.repo) },
-                                enabled = state.status != AppStatus.DOWNLOADING && state.status != AppStatus.INSTALLING,
-                            ) {
+                            if (state.status == AppStatus.MANUAL_ACTION_REQUIRED) {
                                 Text(
-                                    if (state.status == AppStatus.NOT_INSTALLED) {
-                                        stringResource(R.string.action_install)
-                                    } else {
-                                        stringResource(R.string.action_update)
-                                    },
+                                    stringResource(R.string.status_manual_action),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.error,
                                 )
+                            } else {
+                                Button(
+                                    onClick = { onInstall(state.app.repo) },
+                                    enabled = state.status != AppStatus.DOWNLOADING && state.status != AppStatus.INSTALLING,
+                                ) {
+                                    Text(
+                                        if (state.status == AppStatus.NOT_INSTALLED) {
+                                            stringResource(R.string.action_install)
+                                        } else {
+                                            stringResource(R.string.action_update)
+                                        },
+                                    )
+                                }
                             }
                         }
                         if (state.status == AppStatus.DOWNLOADING) {
@@ -104,26 +113,10 @@ fun UpdatesScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        if (state.status == AppStatus.UNINSTALLING) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                stringResource(R.string.status_uninstalling),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
                         if (state.status == AppStatus.INSTALLING) {
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 stringResource(R.string.status_installing),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (state.requiresUninstall && state.status == AppStatus.UPDATE_AVAILABLE) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                stringResource(R.string.update_reinstall_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

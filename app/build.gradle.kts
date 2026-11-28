@@ -50,6 +50,7 @@ fun String.asBuildConfigLiteral(): String = buildString {
 android {
     namespace = "com.patbaumgartner.android.myapps"
     compileSdk = 37
+    compileSdkMinor = 1
 
     defaultConfig {
         applicationId = "com.patbaumgartner.android.myapps"

@@ -129,10 +129,11 @@ fun versionLine(state: AppUiState): String {
 fun StatusChip(status: AppStatus) {
     val (label, container, content) = when (status) {
         AppStatus.UPDATE_AVAILABLE -> Triple(stringResource(R.string.status_update_available), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        AppStatus.MANUAL_ACTION_REQUIRED -> Triple(stringResource(R.string.status_manual_action), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
         AppStatus.NOT_INSTALLED -> Triple(stringResource(R.string.status_not_installed), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
         AppStatus.UP_TO_DATE -> Triple(stringResource(R.string.status_up_to_date), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
         AppStatus.UNCHANGED -> Triple(stringResource(R.string.status_unchanged), MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-        AppStatus.DOWNLOADING, AppStatus.UNINSTALLING, AppStatus.INSTALLING -> Triple(stringResource(R.string.status_working), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        AppStatus.DOWNLOADING, AppStatus.INSTALLING -> Triple(stringResource(R.string.status_working), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
         AppStatus.INSTALL_FAILED, AppStatus.CHECK_FAILED -> Triple(stringResource(R.string.status_failed), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
         AppStatus.CHECKING, AppStatus.IDLE -> Triple(stringResource(R.string.status_idle), MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
     }

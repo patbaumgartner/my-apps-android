@@ -50,6 +50,11 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c  # v6.4.1
 
+      - name: Install Android SDK 37.1
+        run: >-
+          "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          "platforms;android-37.1"
+
       - name: Decode release keystore
         env:
           SR_KEYSTORE_BASE64: ${{ secrets.SR_KEYSTORE_BASE64 }}
@@ -74,7 +79,7 @@ jobs:
 
       - name: Verify APK signature
         run: |
-          apksigner="$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          apksigner="$(find "$ANDROID_HOME"/build-tools -type f -name apksigner -print | sort -V | tail -1)"
           "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
 
       - name: Stage artifacts
@@ -91,7 +96,10 @@ jobs:
           {
             echo "Latest signed build of ${GITHUB_REF_NAME} (commit ${GITHUB_SHA})."
             echo
-            echo "Installs over official releases and vice versa (same signing key)."
+            echo "Newer Snapshot builds install over stable releases (same signing key)."
+            echo "Direct Snapshot to Stable installation is blocked as an Android downgrade."
+            echo "myApps channel switching is manual-only and warns about local data loss."
+            echo "It does not automatically uninstall the app."
             echo "Verify the download against SHA256SUMS before installing."
           } > "$notes"
           # Recreate the tag too so source archives match the uploaded binaries.
@@ -126,6 +134,11 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c  # v6.4.1
+
+      - name: Install Android SDK 37.1
+        run: >-
+          "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          "platforms;android-37.1"
 
       - name: Decode release keystore
         env:
@@ -162,7 +175,7 @@ jobs:
       - name: Verify APK signature and capture certificate fingerprint
         id: cert
         run: |
-          apksigner="$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          apksigner="$(find "$ANDROID_HOME"/build-tools -type f -name apksigner -print | sort -V | tail -1)"
           "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
           "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk \
             | awk '/SHA-256 digest/ {print $NF; exit}' > cert-sha256.txt

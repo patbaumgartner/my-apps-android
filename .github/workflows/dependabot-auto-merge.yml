@@ -30,12 +30,53 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Only queues the merge. Branch protection holds it until the required
-      # checks pass, which is also what lets GITHUB_TOKEN merge PRs that touch
-      # .github/workflows/** -- a direct merge there is rejected.
+      # A queued merge is safe only when hosted settings hold it for the aggregate
+      # CI check. Branch-rules metadata is readable with GITHUB_TOKEN; classic
+      # protection and detailed ruleset APIs require unavailable Administration access.
+      - name: Verify main requires the aggregate CI check
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+          || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRED_CONTEXT: Test, lint, and package
+        run: |
+          set -euo pipefail
+
+          if ! branch_rule_pages="$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/rules/branches/main?per_page=100")"; then
+            echo "::error::Could not read main branch-rules metadata; refusing to enable auto-merge."
+            exit 1
+          fi
+
+          if jq -e --arg required "$REQUIRED_CONTEXT" '
+            any(.[][];
+              .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]?; .context == $required))
+          ' <<<"$branch_rule_pages" >/dev/null; then
+            echo "Active main branch rules require '$REQUIRED_CONTEXT'."
+            exit 0
+          fi
+
+          echo "::error::Auto-merge blocked: active main branch rules do not require" \
+            "'$REQUIRED_CONTEXT'. The repository owner must configure an active main ruleset" \
+            "with that required context; classic branch protection alone is not visible here."
+          exit 1
+
+      # Only queues the merge after the fail-closed preflight above has proved that
+      # hosted enforcement will hold it until the required checks pass.
       - name: Enable auto-merge for patch and minor updates
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --rebase "$PR_URL"
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+          || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::AUTO_MERGE_TOKEN is empty or not configured." \
+              "Add a fine-grained token with Contents, Pull requests, and Workflows write access;" \
+              "auto-merge remains disabled."
+            exit 1
+          fi
+          gh pr merge --auto --rebase "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}

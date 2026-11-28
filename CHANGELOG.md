@@ -6,15 +6,24 @@ All notable changes are documented here. The project follows [Semantic Versionin
 
 ### Fixed
 
-- Switching an app from the Snapshot channel back to Stable while a snapshot is
-  installed now offers the stable release again: snapshot versionCodes
-  (`2_000_000_000 + run number`) always sorted above stable tag codes, so the
-  app was stuck on "Up to date" and could no longer update. Because Android
-  cannot downgrade in place, the switch is applied as uninstall → reinstall of
-  the already-verified APK (`PackageInstaller.uninstall`); a self-switch of
-  myApps shows a manual-reinstall hint. `scripts/check-snapshot-base.mjs` now
-  keeps the snapshot base in `UpdateDecision.kt` and `release.yml` in sync
-  (enforced in CI).
+- Snapshot→Stable remains visible while a snapshot is installed, but is now
+  **Manual action only** for every app. The previous automatic
+  `PackageInstaller.uninstall` → reinstall path could erase decks, presets,
+  credentials, and settings with no warning. That path, its receiver, and the
+  delete-packages permission were removed. The UI now tells users to export/back
+  up where available before a manual uninstall and verified stable installation;
+  normal verified upgrades are unchanged. `scripts/check-snapshot-base.mjs`
+  keeps the snapshot versionCode base in sync.
+- CI wiring no longer pins exact dependency, Gradle, or wrapper-checksum values,
+  so routine version updates do not fail structural checks. SDK levels and the
+  presence of a wrapper SHA-256 remain enforced.
+- Dependabot auto-merge now accepts only explicit semver-patch or semver-minor
+  update types; empty, unknown, and major classifications fail closed. Its
+  preflight requires an active main ruleset through metadata-readable branch
+  rules; classic branch protection alone is not visible to `GITHUB_TOKEN`. Only
+  the merge step uses the guarded `AUTO_MERGE_TOKEN`, whose fine-grained
+  Contents/Pull requests/Workflows write permissions allow merges to trigger CI
+  and signed snapshots.
 
 ## [0.2.0] - 2026-11-16
 

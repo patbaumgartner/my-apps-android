@@ -4,9 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Needed to uninstall an app before reinstalling a lower stable versionCode
-         (the Snapshot → Stable channel switch; Android cannot downgrade in place). -->
-    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
@@ -59,12 +56,5 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".data.install.UninstallResultReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.patbaumgartner.android.myapps.UNINSTALL_RESULT" />
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>
